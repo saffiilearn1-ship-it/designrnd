@@ -195,6 +195,83 @@
       color: #ffffff !important;
     }
 
+
+    /* Distinct 3D / Shadow Border Elevation (Dark & Light Mode) */
+    html:not(.light-theme) .surface-card {
+      background: linear-gradient(180deg, #161b29 0%, #10141f 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.14) !important;
+      border-top-color: rgba(255, 255, 255, 0.22) !important;
+      box-shadow: 0 4px 0 0 #05070a, 0 8px 18px -4px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    }
+    html:not(.light-theme) .surface-card-hover:hover {
+      border-color: rgba(249, 115, 22, 0.65) !important;
+      box-shadow: 0 4px 0 0 #7c2d12, 0 10px 22px -4px rgba(249, 115, 22, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+      transform: translateY(-1px);
+    }
+    html:not(.light-theme) #mainSidebar {
+      border-right: 1px solid rgba(255, 255, 255, 0.14) !important;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.55) !important;
+    }
+    html:not(.light-theme) .glass-topbar {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+    }
+    html:not(.light-theme) .sticky-band {
+      border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    }
+    html:not(.light-theme) #table-wrapper,
+    html:not(.light-theme) #weeklyExpandedPanel {
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      box-shadow: 0 5px 0 0 #05070a, 0 12px 24px -4px rgba(0, 0, 0, 0.75) !important;
+    }
+    html:not(.light-theme) table tbody tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    html:not(.light-theme) .table-head-modern {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+    }
+
+    /* Light Mode 3D / Shadow Border Elevation */
+    html.light-theme .surface-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+      border: 1px solid rgba(15, 23, 42, 0.18) !important;
+      border-top-color: rgba(15, 23, 42, 0.14) !important;
+      box-shadow: 0 3px 0 0 #cbd5e1, 0 8px 16px -4px rgba(15, 23, 42, 0.12), inset 0 1px 0 #ffffff !important;
+      color: #0f172a !important;
+    }
+    html.light-theme .surface-card-hover:hover {
+      background: #ffffff !important;
+      border-color: rgba(249, 115, 22, 0.7) !important;
+      box-shadow: 0 3px 0 0 #fdba74, 0 10px 20px -4px rgba(249, 115, 22, 0.18), inset 0 1px 0 #ffffff !important;
+      transform: translateY(-1px);
+    }
+    html.light-theme #mainSidebar {
+      border-right: 1px solid rgba(15, 23, 42, 0.16) !important;
+      box-shadow: 4px 0 18px rgba(15, 23, 42, 0.08) !important;
+    }
+    html.light-theme .glass-topbar {
+      border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
+      box-shadow: 0 3px 12px rgba(15, 23, 42, 0.07) !important;
+    }
+    html.light-theme .sticky-band {
+      border-top: 1px solid rgba(15, 23, 42, 0.1) !important;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06) !important;
+    }
+    html.light-theme #table-wrapper,
+    html.light-theme #weeklyExpandedPanel {
+      border: 1px solid rgba(15, 23, 42, 0.2) !important;
+      box-shadow: 0 4px 0 0 #cbd5e1, 0 10px 22px -4px rgba(15, 23, 42, 0.14) !important;
+    }
+    html.light-theme table tbody tr {
+      border-bottom: 1px solid rgba(15, 23, 42, 0.12) !important;
+    }
+    html.light-theme .table-head-modern {
+      border-bottom: 1px solid rgba(15, 23, 42, 0.18) !important;
+    }
+
   </style>
 </head>
 <body class="min-h-screen bg-[#090b10] text-slate-200">
@@ -690,7 +767,7 @@
 
   <script>
     // ================= CONFIGURATION =================
-    const API_URL = "https://script.google.com/macros/s/AKfycbyy9-44zG4rOt3MnsR8NCPY0NlTBQBTnkuCXoUeoJmbmiqw9dvjDQ8ueOrv09P4DDgR/exec";
+    const API_URL = "PASTE_WEB_APP_URL_KAMU_DISINI";
     const GOOGLE_CLIENT_ID = "478985076311-eh3rsa1o4m9od56egthrj15o6pog0sta.apps.googleusercontent.com";
     // =================================================
 
