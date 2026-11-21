@@ -58,131 +58,144 @@
       color: #94a3b8;
       border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     }
+
+    /* Light Mode Theme Overrides */
+    html.light-theme {
+      color-scheme: light;
+    }
+    html.light-theme body {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    html.light-theme .glass-topbar {
+      background: rgba(255, 255, 255, 0.96) !important;
+      border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+    }
+    html.light-theme .sticky-band {
+      background: #f8fafc !important;
+      border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+    }
+    html.light-theme .surface-card {
+      background: #ffffff !important;
+      border-color: rgba(15, 23, 42, 0.1) !important;
+      color: #0f172a !important;
+    }
+    html.light-theme .surface-card-hover:hover {
+      background: #f8fafc !important;
+      border-color: rgba(249, 115, 22, 0.55) !important;
+    }
+    html.light-theme .table-head-modern {
+      background: #f1f5f9 !important;
+      color: #475569 !important;
+      border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+    }
+    html.light-theme #mainSidebar {
+      background: #ffffff !important;
+      border-color: rgba(15, 23, 42, 0.1) !important;
+      color: #0f172a !important;
+    }
+    html.light-theme #mainSidebar .border-white\/\[0\.08\],
+    html.light-theme #mainSidebar .border-white\/\[0\.06\] {
+      border-color: rgba(15, 23, 42, 0.1) !important;
+    }
+    html.light-theme #weekRangeBadge,
+    html.light-theme #sidebarUserBadge,
+    html.light-theme #mainSidebar > div > div.sidebar-label.bg-\[\#111520\] {
+      background-color: #f8fafc !important;
+      border-color: rgba(15, 23, 42, 0.1) !important;
+      color: #0f172a !important;
+    }
+    html.light-theme #mainSidebar .nav-btn {
+      color: #475569 !important;
+    }
+    html.light-theme #mainSidebar .nav-btn:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    html.light-theme #mainSidebar .nav-btn.bg-orange-500\/15 {
+      background-color: rgba(249, 115, 22, 0.14) !important;
+      color: #c2410c !important;
+      border-color: rgba(249, 115, 22, 0.35) !important;
+    }
+    html.light-theme .text-white {
+      color: #0f172a !important;
+    }
+    html.light-theme .text-slate-100,
+    html.light-theme .text-slate-200 {
+      color: #1e293b !important;
+    }
+    html.light-theme .text-slate-300,
+    html.light-theme .text-slate-400 {
+      color: #475569 !important;
+    }
+    html.light-theme .text-slate-500 {
+      color: #64748b !important;
+    }
+    html.light-theme .text-orange-300 {
+      color: #c2410c !important;
+    }
+    html.light-theme .text-orange-400 {
+      color: #ea580c !important;
+    }
+    html.light-theme .text-emerald-300,
+    html.light-theme .text-emerald-400 {
+      color: #047857 !important;
+    }
+    html.light-theme .text-sky-400 {
+      color: #0369a1 !important;
+    }
+    html.light-theme .text-rose-400 {
+      color: #be123c !important;
+    }
+    html.light-theme .text-amber-300,
+    html.light-theme .text-amber-400 {
+      color: #b45309 !important;
+    }
+    html.light-theme .text-violet-300,
+    html.light-theme .text-violet-400 {
+      color: #6d28d9 !important;
+    }
+    html.light-theme input,
+    html.light-theme select,
+    html.light-theme textarea {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+      border-color: rgba(15, 23, 42, 0.16) !important;
+    }
+    html.light-theme .bg-\[\#0d1017\],
+    html.light-theme .bg-\[\#111520\],
+    html.light-theme .bg-\[\#131722\],
+    html.light-theme .bg-\[\#151923\],
+    html.light-theme .bg-\[\#090b10\] {
+      background-color: #f8fafc !important;
+      border-color: rgba(15, 23, 42, 0.1) !important;
+    }
+    html.light-theme .bg-white\/\[0\.02\],
+    html.light-theme .bg-white\/\[0\.04\],
+    html.light-theme .bg-white\/\[0\.05\],
+    html.light-theme .bg-white\/\[0\.06\] {
+      background-color: rgba(15, 23, 42, 0.04) !important;
+    }
+    html.light-theme .border-white\/10,
+    html.light-theme .border-white\/15,
+    html.light-theme .border-white\/\[0\.06\],
+    html.light-theme .border-white\/\[0\.07\],
+    html.light-theme .border-white\/\[0\.08\],
+    html.light-theme .border-white\/\[0\.09\] {
+      border-color: rgba(15, 23, 42, 0.1) !important;
+    }
+    html.light-theme .bg-orange-500.text-slate-950,
+    html.light-theme .bg-gradient-to-r.text-slate-950,
+    html.light-theme .bg-emerald-500.text-slate-950,
+    html.light-theme .bg-emerald-400 {
+      color: #ffffff !important;
+    }
+    html.light-theme .bg-emerald-500.bg-emerald-400 {
+      background-color: #10b981 !important;
+      color: #ffffff !important;
+    }
+
   </style>
-  <style id="blip-3d-elevation">
-  :root {
-    --blip-orange: #ff6a00;
-    --blip-line-dark: #050507;
-    --blip-bevel-light: rgba(255, 255, 255, 0.24);
-    --blip-border-crisp: rgba(255, 255, 255, 0.2);
-  }
-
-  /* 1. SIDEBAR: Tetap tegas seperti yang sudah oke */
-  aside,
-  nav[aria-label*="sidebar" i],
-  .sidebar,
-  [class*="sidebar" i] {
-    border-right: 2px solid var(--blip-line-dark) !important;
-    box-shadow:
-      inset -1px 0 0 var(--blip-bevel-light),
-      inset -3px 0 8px rgba(0, 0, 0, 0.65),
-      8px 0 28px rgba(0, 0, 0, 0.9),
-      2px 0 0 rgba(255, 106, 0, 0.2) !important;
-    position: relative;
-    z-index: 30;
-  }
-
-  /* 2. TOP BAR (Survey & Mapping Operations): Dipertebal + bevel atas-bawah + shadow pekat */
-  header,
-  .topbar,
-  .top-bar,
-  [class*="topbar" i],
-  [class*="top-bar" i],
-  [class*="header" i] {
-    border-top: 1.5px solid rgba(255, 255, 255, 0.22) !important;
-    border-bottom: 2.5px solid var(--blip-line-dark) !important;
-    box-shadow:
-      inset 0 1.5px 0 rgba(255, 255, 255, 0.26),
-      inset 0 -2px 6px rgba(0, 0, 0, 0.75),
-      0 12px 30px rgba(0, 0, 0, 0.95),
-      0 3px 0 rgba(255, 106, 0, 0.28) !important;
-    position: relative;
-    z-index: 25;
-  }
-
-  /* 3. WEEKLY OVERVIEW CONTAINER & KARTU METRIC: Border lebih tebal, bevel 3D jelas, shadow tegas */
-  [id*="weekly" i],
-  [class*="weekly" i],
-  [data-section*="weekly" i] {
-    border: 2px solid rgba(255, 255, 255, 0.22) !important;
-    border-top: 2px solid rgba(255, 255, 255, 0.36) !important;
-    border-bottom: 2.5px solid var(--blip-line-dark) !important;
-    box-shadow:
-      inset 0 1.5px 0 rgba(255, 255, 255, 0.26),
-      inset 0 -2px 8px rgba(0, 0, 0, 0.72),
-      0 16px 34px rgba(0, 0, 0, 0.92),
-      0 4px 12px rgba(0, 0, 0, 0.8) !important;
-    border-radius: 14px;
-  }
-
-  /* Kartu metric di dalam Weekly Overview (Total Orders, Open, On Progress, Pending, Cancelled, Completed) */
-  [id*="weekly" i] [class*="card" i],
-  [class*="weekly" i] [class*="card" i],
-  [data-section*="weekly" i] [class*="card" i],
-  [id*="weekly" i] > div > div > div,
-  [class*="weekly" i] > div > div > div {
-    border: 1.5px solid var(--blip-border-crisp) !important;
-    border-top-color: rgba(255, 255, 255, 0.32) !important;
-    border-bottom-color: var(--blip-line-dark) !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      inset 0 -2px 5px rgba(0, 0, 0, 0.65),
-      0 8px 20px rgba(0, 0, 0, 0.78) !important;
-  }
-
-  /* 4. NEED ATTENTION: Pertahankan gaya tegas yang sudah kelihatan bagus */
-  [id*="attention" i],
-  [class*="attention" i],
-  [data-section*="attention" i] {
-    border: 1.5px solid rgba(255, 106, 0, 0.55) !important;
-    border-top: 1.5px solid rgba(255, 158, 82, 0.75) !important;
-    border-bottom: 2px solid var(--blip-line-dark) !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.25),
-      inset 0 -2px 8px rgba(0, 0, 0, 0.7),
-      0 18px 38px rgba(0, 0, 0, 0.95),
-      0 0 0 1px rgba(0, 0, 0, 0.85),
-      0 6px 22px rgba(255, 106, 0, 0.28) !important;
-    border-radius: 12px;
-  }
-   /* --- Tema Dark Espresso Brown Bertingkat --- */
-  html, body {
-    background-color: #191411 !important;
-    background-image: radial-gradient(circle at top right, #261e19 0%, #14100d 75%) !important;
-  }
-
-  /* Sidebar & Top Bar: Roasted Dark Cocoa */
-  aside,
-  nav[aria-label*="sidebar" i],
-  .sidebar,
-  [class*="sidebar" i],
-  header,
-  .topbar,
-  .top-bar,
-  [class*="topbar" i],
-  [class*="top-bar" i] {
-    background-color: #130f0c !important;
-  }
-
-  /* Panel Weekly Overview & Need Attention: Smoked Umber */
-  [id*="weekly" i],
-  [class*="weekly" i],
-  [data-section*="weekly" i],
-  [id*="attention" i],
-  [class*="attention" i],
-  [data-section*="attention" i] {
-    background-color: #211a16 !important;
-  }
-
-  /* Kartu Metric di dalam Panel: Warm Bronze Surface */
-  [id*="weekly" i] [class*="card" i],
-  [class*="weekly" i] [class*="card" i],
-  [id*="weekly" i] > div > div > div,
-  [class*="weekly" i] > div > div > div {
-    background-color: #2a211c !important;
-  }
-</style>
-</style>
 </head>
 <body class="min-h-screen bg-[#090b10] text-slate-200">
   <div class="min-h-screen flex flex-col lg:flex-row items-start">
@@ -236,6 +249,28 @@
             </svg>
             <span class="sidebar-label truncate">System &amp; Access</span>
           </button>
+
+          <!-- Settings Sub-menu: Appearance / Theme -->
+          <div id="settingsAppearanceSubmenu" class="sidebar-label ml-3 pl-3 border-l border-white/[0.1] pt-1 pb-1 space-y-1.5">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Appearance / Theme</span>
+              <span id="currentThemeLabel" class="text-[10px] font-mono-code font-bold text-orange-400">Dark</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 bg-[#111520] p-1 rounded-xl border border-white/[0.08]">
+              <button type="button" id="themeBtn-dark" onclick="setThemeMode('dark')" class="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-bold bg-orange-500 text-slate-950 transition cursor-pointer">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+                <span>Dark</span>
+              </button>
+              <button type="button" id="themeBtn-light" onclick="setThemeMode('light')" class="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white transition cursor-pointer">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>
+                </svg>
+                <span>Light</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Live Sheet Sync Card -->
@@ -631,6 +666,16 @@
           <p class="text-slate-500 text-[10px] uppercase tracking-wider font-bold">Session Role</p>
           <p id="settingsAuthStatus" class="font-bold text-white text-sm mt-1">Viewer Mode (Read-Only)</p>
         </div>
+        <div class="bg-[#0d1017] p-4 rounded-2xl border border-white/[0.08] flex items-center justify-between gap-3">
+          <div>
+            <p class="text-slate-500 text-[10px] uppercase tracking-wider font-bold">Appearance / Theme</p>
+            <p id="modalThemeDesc" class="font-bold text-white text-xs mt-1">Dark Mode Active</p>
+          </div>
+          <div class="flex items-center gap-1.5 bg-[#111520] p-1 rounded-xl border border-white/10">
+            <button type="button" onclick="setThemeMode('dark')" id="modalThemeBtn-dark" class="px-3 py-1 rounded-lg text-[11px] font-bold bg-orange-500 text-slate-950 cursor-pointer">Dark</button>
+            <button type="button" onclick="setThemeMode('light')" id="modalThemeBtn-light" class="px-3 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white cursor-pointer">Light</button>
+          </div>
+        </div>
         <div class="bg-[#0d1017] p-4 rounded-2xl border border-white/[0.08]">
           <p class="text-slate-500 text-[10px] uppercase tracking-wider font-bold">Build Release</p>
           <p class="font-bold text-white mt-1">BLiP OpsPulse Dashboard v5.0.1</p>
@@ -678,6 +723,67 @@
     let historyStageFilterKey = null;
     let allHistoryForType = [];
     let filteredHistoryLogs = [];
+
+
+    let currentThemeMode = "dark";
+    try {
+      const savedTheme = localStorage.getItem("blip_opspulse_theme");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        currentThemeMode = savedTheme;
+      }
+    } catch (e) {}
+
+    function applyThemeMode(mode) {
+      currentThemeMode = mode === "light" ? "light" : "dark";
+      const htmlEl = document.documentElement;
+      if (currentThemeMode === "light") {
+        htmlEl.classList.remove("dark");
+        htmlEl.classList.add("light-theme");
+      } else {
+        htmlEl.classList.remove("light-theme");
+        htmlEl.classList.add("dark");
+      }
+
+      try {
+        localStorage.setItem("blip_opspulse_theme", currentThemeMode);
+      } catch (e) {}
+
+      const labelEl = document.getElementById("currentThemeLabel");
+      const modalDescEl = document.getElementById("modalThemeDesc");
+      const darkBtn = document.getElementById("themeBtn-dark");
+      const lightBtn = document.getElementById("themeBtn-light");
+      const mDarkBtn = document.getElementById("modalThemeBtn-dark");
+      const mLightBtn = document.getElementById("modalThemeBtn-light");
+
+      if (labelEl) labelEl.innerText = currentThemeMode === "light" ? "Light" : "Dark";
+      if (modalDescEl) modalDescEl.innerText = currentThemeMode === "light" ? "Light Mode Active" : "Dark Mode Active";
+
+      if (darkBtn && lightBtn) {
+        if (currentThemeMode === "dark") {
+          darkBtn.className = "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-bold bg-orange-500 text-slate-950 transition cursor-pointer";
+          lightBtn.className = "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white transition cursor-pointer";
+        } else {
+          lightBtn.className = "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-bold bg-orange-500 text-white transition cursor-pointer";
+          darkBtn.className = "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[11px] font-semibold text-slate-500 hover:text-slate-900 transition cursor-pointer";
+        }
+      }
+
+      if (mDarkBtn && mLightBtn) {
+        if (currentThemeMode === "dark") {
+          mDarkBtn.className = "px-3 py-1 rounded-lg text-[11px] font-bold bg-orange-500 text-slate-950 cursor-pointer";
+          mLightBtn.className = "px-3 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white cursor-pointer";
+        } else {
+          mLightBtn.className = "px-3 py-1 rounded-lg text-[11px] font-bold bg-orange-500 text-white cursor-pointer";
+          mDarkBtn.className = "px-3 py-1 rounded-lg text-[11px] font-semibold text-slate-500 hover:text-slate-900 cursor-pointer";
+        }
+      }
+
+      syncStickyOffsets();
+    }
+
+    function setThemeMode(mode) {
+      applyThemeMode(mode);
+    }
 
     function syncStickyOffsets() {
       const topbar = document.getElementById("mainTopbar");
@@ -816,6 +922,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+      applyThemeMode(currentThemeMode);
       initStickyObserver();
       renderWeekRangeBadge();
       updateDateSearchDisplay();
