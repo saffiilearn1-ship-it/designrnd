@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BLiP OpsPulse Console v5.0.1</title>
+  <title>BLiP OpsPulse Console v5.0.2</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -196,80 +196,107 @@
     }
 
 
-    /* Distinct 3D / Shadow Border Elevation (Dark & Light Mode) */
+    /* Distinct 3D / Shadow Border Elevation + Semi-Bold Structural Borders (Dark & Light Mode) */
     html:not(.light-theme) .surface-card {
       background: linear-gradient(180deg, #161b29 0%, #10141f 100%) !important;
-      border: 1px solid rgba(255, 255, 255, 0.14) !important;
-      border-top-color: rgba(255, 255, 255, 0.22) !important;
-      box-shadow: 0 4px 0 0 #05070a, 0 8px 18px -4px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      border-top: 2px solid rgba(255, 255, 255, 0.28) !important;
+      box-shadow: 0 4px 0 0 #05070a, 0 8px 18px -4px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease !important;
     }
     html:not(.light-theme) .surface-card-hover:hover {
-      border-color: rgba(249, 115, 22, 0.65) !important;
-      box-shadow: 0 4px 0 0 #7c2d12, 0 10px 22px -4px rgba(249, 115, 22, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
-      transform: translateY(-1px);
+      border-color: rgba(249, 115, 22, 0.78) !important;
+      border-top-color: rgba(251, 146, 60, 0.95) !important;
+      box-shadow: 0 5px 0 0 #7c2d12, 0 12px 24px -4px rgba(249, 115, 22, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+      transform: translateY(-2px);
     }
+    /* Semi-bold borders on Topbar, Sidebar, and Weekly Overview / Need Attention sections */
     html:not(.light-theme) #mainSidebar {
-      border-right: 1px solid rgba(255, 255, 255, 0.14) !important;
-      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.55) !important;
+      border-right: 2px solid rgba(255, 255, 255, 0.22) !important;
+      box-shadow: 5px 0 22px rgba(0, 0, 0, 0.62) !important;
     }
     html:not(.light-theme) .glass-topbar {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+      border-top: 2px solid rgba(255, 255, 255, 0.22) !important;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.24) !important;
+      box-shadow: 0 5px 18px rgba(0, 0, 0, 0.58) !important;
+    }
+    html:not(.light-theme) #weeklyOverviewSection,
+    html:not(.light-theme) #needAttentionSection {
+      border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+      border-top: 2px solid rgba(255, 255, 255, 0.3) !important;
+      border-radius: 1.25rem !important;
+      padding: 0.75rem 0.9rem 1rem 0.9rem !important;
+      background: rgba(13, 16, 23, 0.55) !important;
+      box-shadow: 0 4px 0 0 #05070a, 0 10px 22px -6px rgba(0, 0, 0, 0.65) !important;
     }
     html:not(.light-theme) .sticky-band {
-      border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+      border-top: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.24) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.48) !important;
     }
     html:not(.light-theme) #table-wrapper,
     html:not(.light-theme) #weeklyExpandedPanel {
-      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.22) !important;
+      border-top: 2px solid rgba(255, 255, 255, 0.3) !important;
       box-shadow: 0 5px 0 0 #05070a, 0 12px 24px -4px rgba(0, 0, 0, 0.75) !important;
     }
     html:not(.light-theme) table tbody tr {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
     }
     html:not(.light-theme) .table-head-modern {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+      border-bottom: 1.5px solid rgba(255, 255, 255, 0.22) !important;
     }
 
-    /* Light Mode 3D / Shadow Border Elevation */
+    /* Light Mode 3D / Shadow Border Elevation + Semi-Bold Structural Borders */
     html.light-theme .surface-card {
       background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
-      border: 1px solid rgba(15, 23, 42, 0.18) !important;
-      border-top-color: rgba(15, 23, 42, 0.14) !important;
+      border: 1px solid rgba(15, 23, 42, 0.2) !important;
+      border-top: 2px solid rgba(15, 23, 42, 0.24) !important;
       box-shadow: 0 3px 0 0 #cbd5e1, 0 8px 16px -4px rgba(15, 23, 42, 0.12), inset 0 1px 0 #ffffff !important;
       color: #0f172a !important;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease !important;
     }
     html.light-theme .surface-card-hover:hover {
       background: #ffffff !important;
-      border-color: rgba(249, 115, 22, 0.7) !important;
-      box-shadow: 0 3px 0 0 #fdba74, 0 10px 20px -4px rgba(249, 115, 22, 0.18), inset 0 1px 0 #ffffff !important;
-      transform: translateY(-1px);
+      border-color: rgba(249, 115, 22, 0.8) !important;
+      border-top-color: rgba(234, 88, 12, 0.95) !important;
+      box-shadow: 0 4px 0 0 #fdba74, 0 12px 22px -4px rgba(249, 115, 22, 0.2), inset 0 1px 0 #ffffff !important;
+      transform: translateY(-2px);
     }
     html.light-theme #mainSidebar {
-      border-right: 1px solid rgba(15, 23, 42, 0.16) !important;
-      box-shadow: 4px 0 18px rgba(15, 23, 42, 0.08) !important;
+      border-right: 2px solid rgba(15, 23, 42, 0.22) !important;
+      box-shadow: 5px 0 20px rgba(15, 23, 42, 0.1) !important;
     }
     html.light-theme .glass-topbar {
-      border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
-      box-shadow: 0 3px 12px rgba(15, 23, 42, 0.07) !important;
+      border-top: 2px solid rgba(15, 23, 42, 0.22) !important;
+      border-bottom: 2px solid rgba(15, 23, 42, 0.24) !important;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.09) !important;
+    }
+    html.light-theme #weeklyOverviewSection,
+    html.light-theme #needAttentionSection {
+      border: 1.5px solid rgba(15, 23, 42, 0.22) !important;
+      border-top: 2px solid rgba(15, 23, 42, 0.28) !important;
+      border-radius: 1.25rem !important;
+      padding: 0.75rem 0.9rem 1rem 0.9rem !important;
+      background: rgba(248, 250, 252, 0.85) !important;
+      box-shadow: 0 4px 0 0 #cbd5e1, 0 10px 20px -6px rgba(15, 23, 42, 0.12) !important;
     }
     html.light-theme .sticky-band {
-      border-top: 1px solid rgba(15, 23, 42, 0.1) !important;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
-      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06) !important;
+      border-top: 1.5px solid rgba(15, 23, 42, 0.2) !important;
+      border-bottom: 2px solid rgba(15, 23, 42, 0.24) !important;
+      box-shadow: 0 3px 12px rgba(15, 23, 42, 0.08) !important;
     }
     html.light-theme #table-wrapper,
     html.light-theme #weeklyExpandedPanel {
-      border: 1px solid rgba(15, 23, 42, 0.2) !important;
+      border: 1.5px solid rgba(15, 23, 42, 0.24) !important;
+      border-top: 2px solid rgba(15, 23, 42, 0.3) !important;
       box-shadow: 0 4px 0 0 #cbd5e1, 0 10px 22px -4px rgba(15, 23, 42, 0.14) !important;
     }
     html.light-theme table tbody tr {
-      border-bottom: 1px solid rgba(15, 23, 42, 0.12) !important;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.14) !important;
     }
     html.light-theme .table-head-modern {
-      border-bottom: 1px solid rgba(15, 23, 42, 0.18) !important;
+      border-bottom: 1.5px solid rgba(15, 23, 42, 0.24) !important;
     }
 
   </style>
@@ -289,7 +316,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-extrabold text-white text-sm tracking-tight truncate">BLiP</span>
-                <span class="px-1.5 py-0.5 text-[10px] font-mono-code font-bold rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/30">v5.0.1</span>
+                <span class="px-1.5 py-0.5 text-[10px] font-mono-code font-bold rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/30">v5.0.2</span>
               </div>
               <p class="text-[11px] text-slate-400 truncate">OpsPulse Console</p>
             </div>
@@ -755,7 +782,7 @@
         </div>
         <div class="bg-[#0d1017] p-4 rounded-2xl border border-white/[0.08]">
           <p class="text-slate-500 text-[10px] uppercase tracking-wider font-bold">Build Release</p>
-          <p class="font-bold text-white mt-1">BLiP OpsPulse Dashboard v5.0.1</p>
+          <p class="font-bold text-white mt-1">BLiP OpsPulse Dashboard v5.0.2</p>
           <p class="text-[11px] text-slate-400 mt-1">Low-GPU Glass-Slate UI • Section-Scoped Dual Sticky Freeze • Interactive 5-Stage Pipeline</p>
         </div>
       </div>
@@ -767,7 +794,7 @@
 
   <script>
     // ================= CONFIGURATION =================
-    const API_URL = "https://script.google.com/macros/s/AKfycbyy9-44zG4rOt3MnsR8NCPY0NlTBQBTnkuCXoUeoJmbmiqw9dvjDQ8ueOrv09P4DDgR/exec";
+    const API_URL = "PASTE_WEB_APP_URL_KAMU_DISINI";
     const GOOGLE_CLIENT_ID = "478985076311-eh3rsa1o4m9od56egthrj15o6pog0sta.apps.googleusercontent.com";
     // =================================================
 
