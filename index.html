@@ -59,6 +59,70 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     }
   </style>
+  <style id="blip-3d-elevation">
+  :root {
+    --blip-orange: #ff6a00;
+    --blip-orange-glow: rgba(255, 106, 0, 0.22);
+    --blip-border-dark: rgba(255, 255, 255, 0.08);
+    --blip-highlight-top: rgba(255, 255, 255, 0.14);
+    --blip-shadow-deep: rgba(0, 0, 0, 0.55);
+  }
+
+  /* 1. Sidebar: frame terangkat dengan bevel kanan & shadow ke area konten */
+  aside,
+  nav[aria-label*="sidebar" i],
+  .sidebar,
+  [class*="sidebar" i] {
+    border-right: 1px solid var(--blip-border-dark) !important;
+    box-shadow:
+      inset -1px 0 0 rgba(255, 255, 255, 0.04),
+      6px 0 22px -6px var(--blip-shadow-deep) !important;
+    position: relative;
+    z-index: 20;
+  }
+
+  /* 2. Top Bar: pemisah bawah tegas + highlight atas 3D */
+  header,
+  .topbar,
+  .top-bar,
+  [class*="topbar" i],
+  [class*="top-bar" i],
+  [class*="header" i] {
+    border-bottom: 1px solid var(--blip-border-dark) !important;
+    box-shadow:
+      inset 0 1px 0 var(--blip-highlight-top),
+      0 8px 20px -8px var(--blip-shadow-deep) !important;
+    position: relative;
+    z-index: 15;
+  }
+
+  /* 3. Weekly Overview: card 3D terangkat dengan top rim highlight */
+  [id*="weekly" i],
+  [class*="weekly" i],
+  [data-section*="weekly" i] {
+    border: 1px solid var(--blip-border-dark) !important;
+    border-top-color: var(--blip-highlight-top) !important;
+    box-shadow:
+      inset 0 1px 0 var(--blip-highlight-top),
+      0 10px 24px -10px var(--blip-shadow-deep),
+      0 2px 6px rgba(0, 0, 0, 0.35) !important;
+    border-radius: 12px;
+  }
+
+  /* 4. Need Attention: kedalaman lebih menonjol + aksen tepi hangat saat aktif/freeze */
+  [id*="attention" i],
+  [class*="attention" i],
+  [data-section*="attention" i] {
+    border: 1px solid rgba(255, 106, 0, 0.24) !important;
+    border-top-color: rgba(255, 138, 51, 0.45) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 14px 30px -10px rgba(0, 0, 0, 0.72),
+      0 0 0 1px rgba(0, 0, 0, 0.45),
+      0 6px 18px -6px var(--blip-orange-glow) !important;
+    border-radius: 12px;
+  }
+</style>
 </head>
 <body class="min-h-screen bg-[#090b10] text-slate-200">
   <div class="min-h-screen flex flex-col lg:flex-row items-start">
