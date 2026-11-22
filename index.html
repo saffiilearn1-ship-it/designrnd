@@ -887,6 +887,11 @@
       { key: "forwardWo", label: "Forward WO", fullLabel: "Forward WO Installation", bracketTags: ["forward wo installation", "forward wo", "installation wo"], opts: ["Not Yet", "Done", "On Progress", "Pending", "Cancel"] }
     ];
 
+    const MAPPING_STAGE_DEFS = [
+      { key: "mapStatus", label: "Mapping Status", fullLabel: "Mapping Status", bracketTags: ["mapping status", "status"], opts: ["Open", "On Progress", "Pending", "Done"] },
+      { key: "coverage", label: "Coverage", fullLabel: "Coverage Result", bracketTags: ["coverage", "coverage result", "mapping"], opts: ["Not Yet", "Onet", "Partner", "Not Cover"] }
+    ];
+
     let appData = { survey: [], mapping: [], handover: [] };
     let activeTab = "All";
     let needAttentionExpanded = false;
@@ -1220,13 +1225,15 @@
 
     async function refreshStageHistoryCache() {
       try {
-        const [srvRes, hndRes] = await Promise.all([
+        const [srvRes, hndRes, mapRes] = await Promise.all([
           fetch(`${API_URL}?action=getHistory&prefix=SRV-`),
-          fetch(`${API_URL}?action=getHistory&prefix=HND-`)
+          fetch(`${API_URL}?action=getHistory&prefix=HND-`),
+          fetch(`${API_URL}?action=getHistory&prefix=MAP-`)
         ]);
-        const [srvJson, hndJson] = await Promise.all([srvRes.json(), hndRes.json()]);
+        const [srvJson, hndJson, mapJson] = await Promise.all([srvRes.json(), hndRes.json(), mapRes.json()]);
         cachedHistory.Survey = extractLogsArray(srvJson);
         cachedHistory.Handover = extractLogsArray(hndJson);
+        cachedHistory.Mapping = extractLogsArray(mapJson);
       } catch (e) {
         // Keep existing cache on transient network error
       }
@@ -1388,7 +1395,10 @@
         return {
           _kind: "Mapping",
           ...t,
+          mapStatus: rawSt,
+          coverage: normalizeStageVal(t.coverage),
           rawStatus: rawSt,
+          computedStatus: effSt,
           unifiedStatus: effSt,
           kpiStatus: mapToKpiBucket(effSt)
         };
@@ -1454,7 +1464,7 @@
         if (item._kind === "Handover") {
           return buildStagePipelineRowHtml(item, displayNo, "Handover", HANDOVER_STAGE_DEFS, true);
         }
-        return buildMappingRowHtml(item, displayNo, true, "wk");
+        return buildStagePipelineRowHtml(item, displayNo, "Mapping", MAPPING_STAGE_DEFS, true);
       }).join("");
 
       tableContainer.innerHTML = `
@@ -1679,6 +1689,21 @@
           if (pair.length === 2 && pair[0] !== pair[1]) {
             changes.unshift(`Work Order Status: ${pair[0]} → ${pair[1]}`);
           }
+        } else if (/^\[mapping\]/i.test(cleanMain)) {
+          const mapBody = cleanMain.replace(/^\[mapping\]\s*/i, "").trim();
+          const subParts = mapBody.split(",").map(x => x.trim()).filter(Boolean);
+          let matchedAny = false;
+          for (const sp of subParts) {
+            const cIdx = sp.indexOf(":");
+            const pTitle = cIdx > 0 ? sp.slice(0, cIdx).trim() : sp;
+            if (!stageOnlyObj || matchStageTag(pTitle, stageOnlyObj)) {
+              changes.push(sp);
+              matchedAny = true;
+            }
+          }
+          if (matchedAny && notePart && notePart !== "-" && !notes.includes(notePart)) {
+            notes.push(notePart);
+          }
         } else if (cleanMain && !cleanMain.toLowerCase().startsWith("update dicatat")) {
           if (stageOnlyObj) {
             const colonIdx = cleanMain.indexOf(":");
@@ -1868,23 +1893,39 @@
         ? activeStagePerTicket[t.ticketId]
         : defaultStageKey;
 
+      const isStepDoneVal = (defKey, val) => {
+        if (defKey === "staging") return val === "Deal";
+        if (defKey === "coverage") return ["Onet", "Partner"].includes(val);
+        return ["Done", "Deal", "Material Ready"].includes(val);
+      };
+
+      const isStepCancelVal = (defKey, val) => {
+        if (defKey === "staging") return val === "Not Deal";
+        if (defKey === "coverage") return val === "Not Cover";
+        return ["Cancel", "Not Deal"].includes(val);
+      };
+
+      const isStepActiveVal = (defKey, val) => {
+        if (defKey === "staging") return val === "Negotiation";
+        if (defKey === "mapStatus") return ["Open", "Pending", "On Progress"].includes(val);
+        return ["Pending", "On Progress", "Waiting Approval"].includes(val);
+      };
+
+      const stepperWidthClass = stageDefs.length === 2 ? "min-w-[340px] max-w-[440px] mx-auto w-full" : "min-w-[460px]";
+
       const stepperHtml = `
-        <div class="flex items-start justify-between min-w-[460px] py-1">
+        <div class="flex items-start justify-between ${stepperWidthClass} py-1">
           ${stageDefs.map((st, sIdx) => {
-            const rawVal = st.key === "staging" ? normalizeHandoverStaging(t[st.key]) : normalizeStageVal(t[st.key]);
+            const rawVal = st.key === "staging"
+              ? normalizeHandoverStaging(t[st.key])
+              : st.key === "mapStatus"
+                ? normalizeMappingStatus(t.mapStatus || t.status)
+                : normalizeStageVal(t[st.key]);
             const isSelectedStage = isExpanded && st.key === activeStageKey;
 
-            const isDone = st.key === "staging"
-              ? rawVal === "Deal"
-              : ["Done", "Deal", "Material Ready"].includes(rawVal);
-
-            const isCancel = st.key === "staging"
-              ? rawVal === "Not Deal"
-              : ["Cancel", "Not Deal"].includes(rawVal);
-
-            const isActiveState = st.key === "staging"
-              ? rawVal === "Negotiation"
-              : ["Pending", "On Progress", "Waiting Approval"].includes(rawVal);
+            const isDone = isStepDoneVal(st.key, rawVal);
+            const isCancel = isStepCancelVal(st.key, rawVal);
+            const isActiveState = isStepActiveVal(st.key, rawVal);
 
             let isOngoingStep = false;
             if (isActiveState && st.key !== "staging") {
@@ -1895,14 +1936,25 @@
               isOngoingStep = true;
             } else if (sIdx > 0 && !rawVal) {
               const prevDef = stageDefs[sIdx - 1];
-              const prevVal = prevDef.key === "staging" ? normalizeHandoverStaging(t[prevDef.key]) : normalizeStageVal(t[prevDef.key]);
-              const prevDone = prevDef.key === "staging" ? prevVal === "Deal" : ["Done", "Deal", "Material Ready"].includes(prevVal);
-              if (prevDone) isOngoingStep = true;
+              const prevVal = prevDef.key === "staging"
+                ? normalizeHandoverStaging(t[prevDef.key])
+                : prevDef.key === "mapStatus"
+                  ? normalizeMappingStatus(t.mapStatus || t.status)
+                  : normalizeStageVal(t[prevDef.key]);
+              if (isStepDoneVal(prevDef.key, prevVal) || (prevDef.key === "mapStatus" && prevVal === "On Progress")) {
+                isOngoingStep = true;
+              }
             }
 
             const prevDef = sIdx > 0 ? stageDefs[sIdx - 1] : null;
-            const prevVal = prevDef ? (prevDef.key === "staging" ? normalizeHandoverStaging(t[prevDef.key]) : normalizeStageVal(t[prevDef.key])) : "";
-            const prevStageDone = prevDef ? (prevDef.key === "staging" ? prevVal === "Deal" : ["Done", "Deal", "Material Ready"].includes(prevVal)) : false;
+            const prevVal = prevDef
+              ? (prevDef.key === "staging"
+                  ? normalizeHandoverStaging(t[prevDef.key])
+                  : prevDef.key === "mapStatus"
+                    ? normalizeMappingStatus(t.mapStatus || t.status)
+                    : normalizeStageVal(t[prevDef.key]))
+              : "";
+            const prevStageDone = prevDef ? isStepDoneVal(prevDef.key, prevVal) : false;
 
             const leftLineColor = prevStageDone ? "bg-emerald-500/80" : "bg-white/10";
             const rightLineColor = isDone ? "bg-emerald-500/80" : "bg-white/10";
@@ -1929,7 +1981,7 @@
               circleStyle = "bg-orange-500/20 border-2 border-orange-500 text-orange-400";
               iconHtml = dotSvg;
               labelColor = "text-orange-300 font-bold";
-              subText = st.key === "staging" ? (rawVal || "Negotiation") : (rawVal || "Next");
+              subText = st.key === "staging" ? (rawVal || "Negotiation") : (rawVal || "Pending");
               subColor = "text-orange-400 font-semibold";
             }
 
@@ -1971,8 +2023,13 @@
         const activeStageObj = stageDefs.find(s => s.key === activeStageKey) || stageDefs[0];
         const currentStageVal = activeStageObj.key === "staging"
           ? normalizeHandoverStaging(t[activeStageKey])
-          : normalizeStageVal(t[activeStageKey]);
-        const stageDetailObj = (t.stageDetails && t.stageDetails[activeStageKey]) || { pic: "", note: "" };
+          : activeStageObj.key === "mapStatus"
+            ? normalizeMappingStatus(t.mapStatus || t.status)
+            : normalizeStageVal(t[activeStageKey]);
+        const fallbackMapDetail = pipelineType === "Mapping"
+          ? { pic: t.pic || "", note: t.description || "" }
+          : { pic: "", note: "" };
+        const stageDetailObj = (t.stageDetails && t.stageDetails[activeStageKey]) || fallbackMapDetail;
         const headerDisplayStatus = activeStageObj.key === "staging"
           ? (currentStageVal || "Negotiation")
           : (currentStageVal || "Not Yet");
@@ -1985,11 +2042,15 @@
 
         const helperHintHtml = activeStageObj.key === "staging"
           ? `<p class="text-[10.5px] text-slate-400">Solved Survey → <strong class="text-amber-300">Negotiation</strong> (<strong class="text-violet-300">Pending</strong>) • <strong class="text-emerald-400">Deal</strong> = <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = <strong class="text-emerald-400">Closed</strong>.</p>`
-          : "";
+          : pipelineType === "Mapping"
+            ? `<p class="text-[10.5px] text-slate-400">Update <strong class="text-orange-300">${activeStageObj.label}</strong> &amp; route/vendor notes below. Every save appends to the chronological activity receipt.</p>`
+            : "";
 
         const saveHandler = pipelineType === "Handover"
           ? `saveExpandedHandoverStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`
-          : `saveExpandedSurveyStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`;
+          : pipelineType === "Mapping"
+            ? `saveExpandedMappingStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`
+            : `saveExpandedSurveyStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`;
 
         const updateMenuHtml = canEdit ? `
           <div class="bg-[#0d1017] border border-orange-500/30 rounded-2xl p-4 space-y-3">
@@ -1998,7 +2059,7 @@
                 <span class="text-xs font-extrabold text-orange-400">Stage: ${activeStageObj.fullLabel}</span>
                 ${getStatusPillHtml(headerDisplayStatus)}
               </div>
-              ${isAdmin ? `
+              ${(isAdmin && pipelineType !== "Mapping") ? `
                 <div class="flex items-center gap-1.5 text-xs">
                   <span class="text-slate-400">Override Status:</span>
                   <select id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" class="bg-[#151923] border border-white/15 rounded-lg px-2 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
@@ -2095,7 +2156,9 @@
       const workOrderName = String(t.customer || "").trim() || "-";
       const badgeStyles = pipelineType === "Handover"
         ? "bg-violet-500/10 text-violet-400 border-violet-500/25"
-        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
+        : pipelineType === "Mapping"
+          ? "bg-sky-500/10 text-sky-400 border-sky-500/25"
+          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
 
       const divBadgeHtml = showDivBadge
         ? `<div class="mt-1.5"><span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${badgeStyles}">${pipelineType}</span></div>`
@@ -2224,7 +2287,7 @@
         if (item._kind === "Handover") {
           return buildStagePipelineRowHtml(item, displayNo, "Handover", HANDOVER_STAGE_DEFS, true);
         }
-        return buildMappingRowHtml(item, displayNo, true, "cmb");
+        return buildStagePipelineRowHtml(item, displayNo, "Mapping", MAPPING_STAGE_DEFS, true);
       }).join("");
 
       container.innerHTML = `
@@ -2629,12 +2692,17 @@
       }
 
       const rowsHtml = filtered.map((t, idx) => {
+        const rawSt = normalizeMappingStatus(t.status);
+        const effSt = getEffectiveMappingStatus(rawSt);
         const item = {
           ...t,
-          rawStatus: normalizeMappingStatus(t.status),
-          unifiedStatus: getEffectiveMappingStatus(t.status)
+          mapStatus: rawSt,
+          coverage: normalizeStageVal(t.coverage),
+          rawStatus: rawSt,
+          computedStatus: effSt,
+          unifiedStatus: effSt
         };
-        return buildMappingRowHtml(item, idx + 1, false, "tab");
+        return buildStagePipelineRowHtml(item, idx + 1, "Mapping", MAPPING_STAGE_DEFS, false);
       }).join("");
 
       container.innerHTML = `
@@ -2644,7 +2712,7 @@
               <th class="py-3 px-4 w-12 text-center">#</th>
               <th class="py-3 px-4">Status</th>
               <th class="py-3 px-4">Customer / ID</th>
-              <th class="py-3 px-4">Mapping Details</th>
+              <th class="py-3 px-4 text-center min-w-[360px]">Mapping Pipeline (Mapping Status → Coverage)</th>
               <th class="py-3 px-4 text-right">Last Update</th>
               <th class="py-3 px-4 text-center">Logs</th>
             </tr>
@@ -2654,50 +2722,66 @@
       `;
     }
 
-    async function updateMappingRowGeneric(r, idPrefix, btn) {
+    async function saveExpandedMappingStage(rowIndex, ticketId, stageKey, btn) {
       if (!authToken || !currentUser) return alert("Please sign in with your Google account first to update work orders.");
-      const orig = btn.innerText;
+      const item = (appData.mapping || []).find(m => m.rowIndex === rowIndex);
+      if (!item) return;
+
+      const origText = btn.innerText;
       btn.innerText = "Saving...";
       btn.disabled = true;
 
-      const newStatus = document.getElementById(`${idPrefix}-map-status-${r}`).value;
-      const newCov = document.getElementById(`${idPrefix}-map-cov-${r}`).value;
-      const newDesc = document.getElementById(`${idPrefix}-map-desc-${r}`).value.trim();
+      const updatedStageVal = document.getElementById(`exp-stageval-${rowIndex}`).value;
       const autoPic = formatPicLabel(currentUser.name);
+      const updatedNote = document.getElementById(`exp-note-${rowIndex}`).value.trim();
+
+      const prevStatus = normalizeMappingStatus(item.status);
+      const prevCov = normalizeStageVal(item.coverage);
+
+      const newStatus = stageKey === "mapStatus" ? normalizeMappingStatus(updatedStageVal) : prevStatus;
+      const newCov = stageKey === "coverage" ? normalizeStageVal(updatedStageVal) : prevCov;
+
+      const sd = JSON.parse(JSON.stringify(item.stageDetails || {}));
+      sd[stageKey] = { pic: autoPic, note: updatedNote };
 
       const payload = {
         ticketType: "Mapping",
         action: "update",
         token: authToken,
-        rowIndex: r,
+        rowIndex: rowIndex,
         status: newStatus,
         coverage: newCov,
         pic: autoPic,
-        description: newDesc
+        description: updatedNote,
+        stageDetails: sd
       };
 
       try {
         await sendWorkOrderPayload(payload);
 
-        const item = (appData.mapping || []).find(m => m.rowIndex === r);
         const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
-        if (item) {
-          item.status = newStatus;
-          item.coverage = newCov;
-          item.description = newDesc;
-          item.pic = autoPic;
-          item.lastUpdated = nowStr;
-          applyOptimisticHistoryEntry("Mapping", item.ticketId, item.customer, newStatus, "UPDATE", `[Mapping] Status: ${newStatus}, Coverage: ${newCov || "Not Yet"} | PIC: ${autoPic}`, autoPic);
-        }
+        item.status = newStatus;
+        item.coverage = newCov;
+        item.description = updatedNote;
+        item.pic = autoPic;
+        item.stageDetails = sd;
+        item.lastUpdated = nowStr;
+
+        const stageLabel = stageKey === "coverage" ? "Coverage" : "Mapping Status";
+        const oldDisp = stageKey === "coverage" ? (prevCov || "Not Yet") : prevStatus;
+        const newDisp = stageKey === "coverage" ? (newCov || "Not Yet") : newStatus;
+        const logDetail = `[${stageLabel}] ${stageLabel}: ${oldDisp} → ${newDisp}${updatedNote ? ` | Ket: ${updatedNote}` : ""} | PIC: ${autoPic}`;
+        applyOptimisticHistoryEntry("Mapping", ticketId, item.customer, newStatus, "UPDATE", logDetail, autoPic);
 
         refreshAllViewsOptimistic();
 
         btn.innerText = "✓ Saved";
-        btn.classList.replace("bg-orange-500", "bg-emerald-400");
+        btn.classList.remove("from-orange-500", "to-amber-500");
+        btn.classList.add("bg-emerald-400");
         setTimeout(() => fetchAllData(), 2200);
       } catch (err) {
         alert("Failed to save Mapping work order.");
-        btn.innerText = orig;
+        btn.innerText = origText;
         btn.disabled = false;
       }
     }
@@ -2820,6 +2904,7 @@
     function getStageDefsForType(type) {
       if (type === "Handover") return HANDOVER_STAGE_DEFS;
       if (type === "Survey") return SURVEY_STAGE_DEFS;
+      if (type === "Mapping") return MAPPING_STAGE_DEFS;
       return [];
     }
 
