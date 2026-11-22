@@ -1741,6 +1741,27 @@
       const notes = [];
       let detectedPic = "";
 
+      const belongsToStage = (text) => {
+        if (!stageOnlyObj) return true;
+        const t = String(text || "").toLowerCase();
+        if (stageOnlyObj.key === "onet") {
+          return /\bonet\b/.test(t) && !/\bpartner\b/.test(t);
+        }
+        if (stageOnlyObj.key === "partner") {
+          return /\bpartner\b/.test(t) && !/\bonet\b/.test(t);
+        }
+        if (stageOnlyObj.key === "survey") {
+          return /\bsurvey\b/.test(t) && !/report\s*survey/.test(t);
+        }
+        if (stageOnlyObj.key === "reportSurvey") {
+          return /report\s*survey/.test(t);
+        }
+        if (stageOnlyObj.key === "boq") {
+          return /\bboq\b/.test(t);
+        }
+        return matchStageTag(t, stageOnlyObj);
+      };
+
       for (const blk of blocks) {
         const picMatch = blk.match(/PIC:\s*([^|;]+)/i);
         if (picMatch && picMatch[1].trim() && picMatch[1].trim() !== "-") {
@@ -1758,7 +1779,7 @@
 
         if (transMatch) {
           const stageTitle = transMatch[1].trim();
-          if (stageOnlyObj && !matchStageTag(stageTitle, stageOnlyObj)) continue;
+          if (stageOnlyObj && !belongsToStage(`${stageTitle} ${cleanMain}`)) continue;
           if (notePart && notePart !== "-" && !notes.includes(notePart)) notes.push(notePart);
           const transVal = transMatch[2].trim();
           const pair = transVal.split("→").map(x => x.trim());
@@ -1782,7 +1803,7 @@
           for (const pp of pipeParts) {
             if (/^ket:/i.test(pp)) {
               const kNote = pp.replace(/^ket:\s*/i, "").trim();
-              if (kNote && kNote !== "-" && !notes.includes(kNote)) notes.push(kNote);
+              if (!stageOnlyObj && kNote && kNote !== "-" && !notes.includes(kNote)) notes.push(kNote);
               continue;
             }
             if (/^pic:/i.test(pp)) {
@@ -1790,9 +1811,14 @@
               if (pName && pName !== "-") detectedPic = pName;
               continue;
             }
-            const cIdx = pp.indexOf(":");
-            const pTitle = cIdx > 0 ? pp.slice(0, cIdx).trim() : pp;
-            if (!stageOnlyObj || matchStageTag(pTitle, stageOnlyObj)) {
+            if (/^ticket status:/i.test(pp)) {
+              if (!stageOnlyObj) {
+                changes.push(pp);
+                matchedAny = true;
+              }
+              continue;
+            }
+            if (!stageOnlyObj || belongsToStage(pp)) {
               changes.push(pp);
               matchedAny = true;
             }
@@ -1803,12 +1829,8 @@
         } else if (cleanMain && !cleanMain.toLowerCase().startsWith("update dicatat")) {
           if (stageOnlyObj) {
             const colonIdx = cleanMain.indexOf(":");
-            if (colonIdx > 0) {
-              const prefixTitle = cleanMain.slice(0, colonIdx).trim();
-              if (!matchStageTag(prefixTitle, stageOnlyObj)) continue;
-            } else {
-              continue;
-            }
+            const prefixTitle = colonIdx > 0 ? cleanMain.slice(0, colonIdx).trim() : cleanMain;
+            if (!belongsToStage(prefixTitle) && !belongsToStage(cleanMain)) continue;
           }
           if (notePart && notePart !== "-" && !notes.includes(notePart)) notes.push(notePart);
           changes.push(cleanMain);
@@ -2141,15 +2163,9 @@
           const lCust = String(log.customer || log.workOrderName || "").trim().toLowerCase();
           return (lTid && lTid === String(t.ticketId).trim()) || (!lTid && custLower && lCust === custLower);
         });
-        let stageEntries = ticketLogs
+        const stageEntries = ticketLogs
           .map(log => ({ log, parsed: parseResiLogEntry(log, stageDetailObj.pic, stageDetailObj.note, activeStageObj) }))
           .filter(entry => entry.parsed.changes.length > 0);
-        if (stageEntries.length === 0 && ticketLogs.length > 0) {
-          stageEntries = ticketLogs.map(log => ({
-            log,
-            parsed: parseResiLogEntry(log, stageDetailObj.pic, stageDetailObj.note, null)
-          }));
-        }
 
         const rawMapTicketStatus = normalizeMappingStatus(t.rawStatus || t.status);
 
