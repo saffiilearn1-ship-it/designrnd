@@ -3343,6 +3343,30 @@
       return matched;
     }
 
+    function resolveReceiptLogStatus(logItem, ticketRecord) {
+      const rawSt = String((logItem && logItem.status) || "").trim();
+      const recordSt = ticketRecord
+        ? (historyTypeActive === "Survey"
+            ? computeAutoSurveyStatus(
+                cascadeStages([ticketRecord.survey, ticketRecord.reportSurvey, ticketRecord.boq], ticketRecord.status),
+                ticketRecord.status
+              )
+            : historyTypeActive === "Handover"
+              ? computeHandoverStatus(
+                  normalizeHandoverStaging(ticketRecord.staging),
+                  ticketRecord.materialEquip,
+                  ticketRecord.forwardWo,
+                  ticketRecord.status
+                )
+              : getEffectiveMappingStatus(ticketRecord.status))
+        : "";
+
+      if (historySingleCustomerMode && (recordSt === "Closed" || recordSt === "Done")) {
+        return "Done";
+      }
+      return rawSt || recordSt || "Open";
+    }
+
     function renderHistoryTimeline() {
       const container = document.getElementById("historyListContainer");
       if (filteredHistoryLogs.length === 0) {
@@ -3352,6 +3376,9 @@
 
       const stageDefs = getStageDefsForType(historyTypeActive);
       const stageObj = historyStageFilterKey ? stageDefs.find(s => s.key === historyStageFilterKey) : null;
+      const receiptRecord = historySingleCustomerMode
+        ? findWorkOrderRecord(historyTypeActive, historyLockedTicketId)
+        : null;
 
       const logsToRender = historySingleCustomerMode
         ? [...filteredHistoryLogs].reverse()
@@ -3362,6 +3389,7 @@
         const isLast = idx === logsToRender.length - 1;
         const stepNumber = historySingleCustomerMode ? (idx + 1) : (logsToRender.length - idx);
         const isHighlightNode = historySingleCustomerMode ? isLast : (idx === 0);
+        const badgeStatus = resolveReceiptLogStatus(item, receiptRecord);
 
         return `
           <div class="relative pl-7 pb-4 ${isLast ? 'pb-1' : ''}">
@@ -3402,7 +3430,7 @@
 
               <div class="flex flex-wrap justify-between items-center gap-2 text-[11px] text-slate-400 pt-1">
                 <span>PIC: <strong class="text-amber-300">${parsed.pic}</strong></span>
-                ${!stageObj && item.status ? getStatusPillHtml(item.status) : ""}
+                ${!stageObj && (item.status || historySingleCustomerMode) ? getStatusPillHtml(badgeStatus) : ""}
               </div>
             </div>
           </div>
