@@ -353,6 +353,14 @@
           </button>
         </div>
 
+        <!-- Primary Admin Action in Sidebar -->
+        <div id="sidebarActionWrap" class="hidden">
+          <button id="btnNewTicket" onclick="openAddModal()" title="Create New Work Order" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center justify-center gap-2 shadow-sm">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <span class="sidebar-label truncate">New Work Order</span>
+          </button>
+        </div>
+
         <!-- Navigation -->
         <div class="space-y-1.5">
           <p class="sidebar-label px-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Workspace</p>
@@ -449,24 +457,27 @@
 
       <!-- Freeze Layer 1: Top Header -->
       <header id="mainTopbar" class="glass-topbar sticky top-0 z-40 border-b border-white/[0.08] px-4 md:px-7 py-2.5">
-        <div class="max-w-[1600px] mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
-          <div class="min-w-0">
-            <div class="flex items-center gap-2.5">
-              <h1 class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">
+        <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row xl:items-center xl:justify-between gap-2.5">
+          <div class="shrink-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-sm sm:text-base 2xl:text-[17px] font-extrabold text-white tracking-tight leading-snug">
                 Business Integration Work Orders Monitoring
               </h1>
               <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
                 Realtime
               </span>
             </div>
-            <p id="friendlyGreeting" class="text-xs text-slate-400 truncate">
+            <p class="text-xs text-slate-400 mt-0.5">
               Monitor coverage mapping, field surveys &amp; handover dispatches.
+            </p>
+            <p id="friendlyGreeting" class="hidden text-[11px] font-bold text-orange-400 mt-0.5">
+              Welcome back!
             </p>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-2.5 shrink-0">
             <!-- Global Search -->
-            <div class="relative flex-1 sm:flex-initial sm:w-64">
+            <div class="relative flex-1 sm:flex-initial sm:w-56 md:w-64">
               <svg class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
               </svg>
@@ -474,12 +485,12 @@
             </div>
 
             <!-- Date Range Filter -->
-            <div id="dateSearchWrapper" class="relative">
+            <div id="dateSearchWrapper" class="relative shrink-0">
               <button type="button" onclick="toggleDatePopover(event)" class="bg-[#111520] hover:bg-[#161c2b] border border-white/15 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2 transition cursor-pointer">
                 <svg class="w-3.5 h-3.5 text-orange-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <rect x="3" y="4" width="18" height="18" rx="2"/><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/>
                 </svg>
-                <span id="dateSearchSummary" class="text-xs text-slate-400 truncate">Date Range</span>
+                <span id="dateSearchSummary" class="text-xs text-slate-400 whitespace-nowrap">Date Range</span>
                 <span id="dateActiveBadge" class="hidden w-2 h-2 rounded-full bg-orange-400"></span>
               </button>
 
@@ -499,14 +510,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Admin Action Button -->
-            <div id="sidebarActionWrap" class="hidden">
-              <button id="btnNewTicket" onclick="openAddModal()" class="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-4 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                <span>New Work Order</span>
-              </button>
             </div>
           </div>
         </div>
@@ -1011,6 +1014,7 @@
       const toggleSvg = document.getElementById("sidebarToggleSvg");
       const labels = document.querySelectorAll(".sidebar-label");
       const navBtns = document.querySelectorAll(".nav-btn");
+      const newTicketBtn = document.getElementById("btnNewTicket");
       const googleBlock = document.getElementById("googleBtnAuthBlock");
 
       if (!aside) return;
@@ -1023,6 +1027,7 @@
         toggleSvg.classList.add("rotate-180");
         labels.forEach(el => el.classList.add("lg:hidden"));
         navBtns.forEach(btn => btn.classList.add("lg:justify-center", "lg:px-0"));
+        if (newTicketBtn) newTicketBtn.classList.add("lg:px-0");
         if (googleBlock) googleBlock.classList.add("lg:hidden");
       } else {
         aside.classList.remove("lg:w-[76px]");
@@ -1032,6 +1037,7 @@
         toggleSvg.classList.remove("rotate-180");
         labels.forEach(el => el.classList.remove("lg:hidden"));
         navBtns.forEach(btn => btn.classList.remove("lg:justify-center", "lg:px-0"));
+        if (newTicketBtn) newTicketBtn.classList.remove("lg:px-0");
         if (googleBlock) googleBlock.classList.remove("lg:hidden");
       }
     }
@@ -1175,7 +1181,8 @@
         document.getElementById("sidebarUserRole").innerText = currentUser.role || "Member";
         document.getElementById("sidebarUserInitial").innerText = (currentUser.name || "U").charAt(0).toUpperCase();
         settingsStatus.innerText = `${currentUser.name} (${currentUser.email})`;
-        greetingEl.innerText = `Welcome back, ${currentUser.name.split(" ")[0]}! Monitor mapping, surveys & handover dispatches.`;
+        greetingEl.innerText = `Welcome back, ${currentUser.name.split(" ")[0]}!`;
+        greetingEl.classList.remove("hidden");
       } else {
         actionWrap.classList.add("hidden");
         btnNew.classList.add("hidden");
@@ -1183,7 +1190,7 @@
         sidebarBadge.classList.add("hidden");
         sidebarBadge.classList.remove("flex");
         settingsStatus.innerText = "Viewer Mode (Not Signed In)";
-        greetingEl.innerText = "Monitor coverage mapping, field surveys & handover dispatches.";
+        greetingEl.classList.add("hidden");
       }
       applySidebarExpandUI();
       syncStickyOffsets();
