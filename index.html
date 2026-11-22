@@ -2174,16 +2174,7 @@
                 </select>
               </div>
             `
-          : (isAdmin
-              ? `
-                <div class="flex items-center gap-1.5 text-xs">
-                  <span class="text-slate-400">Override Status:</span>
-                  <select id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" class="bg-[#151923] border border-white/15 rounded-lg px-2 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
-                    ${["Negotiation", "Open", "On Progress", "Pending", "Closed", "Cancel"].map(s => `<option value="${s}" ${t.computedStatus === s ? "selected" : ""}>${s}</option>`).join("")}
-                  </select>
-                </div>
-              `
-              : `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`);
+          : `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`;
 
         const stageOnChangeAttr = pipelineType === "Mapping"
           ? `onchange="onMappingDrawerStageChange(${t.rowIndex}, '${activeStageKey}')"`
@@ -2540,37 +2531,31 @@
     }
 
     async function sendWorkOrderPayload(payload) {
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        });
-        if (res && res.ok) {
-          try {
-            const data = await res.json();
-            if (data && data.ok === false) {
-              throw new Error(data.message || "Server rejected update.");
-            }
-          } catch (_) {
-            // Non-JSON response is acceptable
-          }
-          return;
-        }
-      } catch (corsOrNetErr) {
-        // Fallback for Google Apps Script web app redirect/CORS behavior
-      }
-      await fetch(API_URL, {
+      const res = await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const rawText = await res.text();
+      if (rawText) {
+        let data = null;
+        try {
+          data = JSON.parse(rawText);
+        } catch (_) {
+          // Non-JSON response
+        }
+        if (data && (data.ok === false || data.success === false || data.status === "error")) {
+          throw new Error(data.message || data.error || "Server rejected update.");
+        }
+      }
     }
 
     async function saveExpandedSurveyStage(rowIndex, ticketId, stageKey, btn) {
       if (!authToken || !currentUser) return alert("Please sign in with your Google account first to update work orders.");
-      const ticket = (appData.survey || []).find(item => item.rowIndex === rowIndex);
+      const ticket = (appData.survey || []).find(item => item.rowIndex === rowIndex || String(item.ticketId).trim() === String(ticketId).trim());
       if (!ticket) return;
 
       const origText = btn.innerText;
@@ -2581,11 +2566,6 @@
       const autoPic = resolveCurrentPicName();
       const updatedNote = document.getElementById(`exp-note-${rowIndex}`).value.trim();
 
-      const statusEl = document.getElementById(`exp-mainstatus-${rowIndex}`);
-      const selectedMainStatus = statusEl.value;
-      const initialMainStatus = statusEl.getAttribute("data-initial") || ticket.status;
-      const isManualStatusChanged = selectedMainStatus !== initialMainStatus;
-
       const prevStages = [ticket.survey || "", ticket.reportSurvey || "", ticket.boq || ""];
       const rawStages = [
         stageKey === "survey" ? updatedStageVal : (ticket.survey || ""),
@@ -2593,10 +2573,8 @@
         stageKey === "boq" ? updatedStageVal : (ticket.boq || "")
       ];
 
-      const cascaded = cascadeStages(rawStages, isManualStatusChanged ? selectedMainStatus : "");
-      const autoSyncedStatus = (isManualStatusChanged && !cascaded.includes("Cancel"))
-        ? selectedMainStatus
-        : computeAutoSurveyStatus(cascaded, selectedMainStatus);
+      const cascaded = cascadeStages(rawStages, "");
+      const autoSyncedStatus = computeAutoSurveyStatus(cascaded, ticket.status);
 
       const sd = JSON.parse(JSON.stringify(ticket.stageDetails || {}));
       sd[stageKey] = { pic: autoPic, note: updatedNote };
@@ -2605,12 +2583,17 @@
         ticketType: "Survey",
         action: "update",
         token: authToken,
-        rowIndex: rowIndex,
+        rowIndex: ticket.rowIndex,
+        ticketId: ticket.ticketId || ticketId,
+        customer: ticket.customer || "",
+        activeStage: stageKey,
         status: autoSyncedStatus,
-        manualStatusOverride: isManualStatusChanged && !cascaded.includes("Cancel"),
+        manualStatusOverride: false,
         survey: cascaded[0],
         reportSurvey: cascaded[1],
         boq: cascaded[2],
+        pic: autoPic,
+        description: updatedNote,
         stageDetails: sd
       };
 
@@ -2676,7 +2659,7 @@
 
     async function saveExpandedHandoverStage(rowIndex, ticketId, stageKey, btn) {
       if (!authToken || !currentUser) return alert("Please sign in with your Google account first to update work orders.");
-      const ticket = (appData.handover || []).find(item => item.rowIndex === rowIndex);
+      const ticket = (appData.handover || []).find(item => item.rowIndex === rowIndex || String(item.ticketId).trim() === String(ticketId).trim());
       if (!ticket) return;
 
       const origText = btn.innerText;
@@ -2686,11 +2669,6 @@
       const updatedStageVal = document.getElementById(`exp-stageval-${rowIndex}`).value;
       const autoPic = resolveCurrentPicName();
       const updatedNote = document.getElementById(`exp-note-${rowIndex}`).value.trim();
-
-      const statusEl = document.getElementById(`exp-mainstatus-${rowIndex}`);
-      const selectedMainStatus = statusEl.value;
-      const initialMainStatus = statusEl.getAttribute("data-initial") || ticket.status;
-      const isManualStatusChanged = selectedMainStatus !== initialMainStatus;
 
       const prevStaging = normalizeHandoverStaging(ticket.staging);
       const prevMat = normalizeStageVal(ticket.materialEquip);
@@ -2704,7 +2682,7 @@
         newStaging,
         newMat,
         newFwd,
-        isManualStatusChanged ? selectedMainStatus : initialMainStatus
+        ticket.status
       );
 
       const sd = JSON.parse(JSON.stringify(ticket.stageDetails || {}));
@@ -2714,12 +2692,17 @@
         ticketType: "Handover",
         action: "update",
         token: authToken,
-        rowIndex: rowIndex,
+        rowIndex: ticket.rowIndex,
+        ticketId: ticket.ticketId || ticketId,
+        customer: ticket.customer || "",
+        activeStage: stageKey,
         status: computedStatus,
-        manualStatusOverride: isManualStatusChanged,
+        manualStatusOverride: false,
         staging: newStaging,
         materialEquip: newMat,
         forwardWo: newFwd,
+        pic: autoPic,
+        description: updatedNote,
         stageDetails: sd
       };
 
@@ -2867,7 +2850,9 @@
         ticketType: "Mapping",
         action: "update",
         token: authToken,
-        rowIndex: rowIndex,
+        rowIndex: item.rowIndex,
+        ticketId: item.ticketId || ticketId,
+        customer: item.customer || "",
         activeStage: stageKey,
         status: newStatus,
         onet: newOnet,
