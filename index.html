@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BLiP v5.1.2</title>
+  <title>BLiP v5.1.1</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -865,7 +865,7 @@
         </div>
         <div class="bg-[#0d1017] p-4 rounded-2xl border border-white/[0.08]">
           <p class="text-slate-500 text-[10px] uppercase tracking-wider font-bold">Build Release</p>
-          <p class="font-bold text-white mt-1">BLiP Dashboard v5.1.2</p>
+          <p class="font-bold text-white mt-1">BLiP Dashboard v5.1.1</p>
           <p class="text-[11px] text-slate-400 mt-1">3-Division Work Orders (Mapping, Survey, Handover) • Customer Receipt Logs • Interactive Stage Pipelines</p>
         </div>
       </div>
@@ -1576,137 +1576,37 @@
       return true;
     }
 
-    function buildDatePartsFromNumbers(yyyy, mm, dd, hhStr, minStr, ssStr, hasTime) {
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const hh = hasTime ? String(hhStr || "00").padStart(2, "0") : "";
-      const min = hasTime ? String(minStr || "00").padStart(2, "0") : "";
-      const ss = hasTime ? String(ssStr || "00").padStart(2, "0") : "00";
-      return {
-        yyyy, mm, dd,
-        hh, min, ss,
-        hasTime: Boolean(hasTime),
-        dateLabel: `${monthNames[mm - 1] || mm} ${dd}, ${yyyy}`,
-        dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1] || mm} ${yyyy}`
-      };
-    }
-
-    // Parse timestamp mentah dari Google Sheet apa adanya; jika ada explicit timezone offset (Z / +07:00), konversi ke WIB
-    function extractRawDateParts(rawTs) {
+    function parseLocalTimestamp(rawTs) {
       if (!rawTs || rawTs === "-") return null;
       const str = String(rawTs).trim();
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const monthMap = {
-        jan: 1, januari: 1, january: 1,
-        feb: 2, februari: 2, february: 2,
-        mar: 3, maret: 3, march: 3,
-        apr: 4, april: 4,
-        may: 5, mei: 5,
-        jun: 6, juni: 6, june: 6,
-        jul: 7, juli: 7, july: 7,
-        aug: 8, agustus: 8, august: 8, agt: 8,
-        sep: 9, september: 9, sept: 9,
-        oct: 10, oktober: 10, october: 10, okt: 10,
-        nov: 11, november: 11,
-        dec: 12, desember: 12, december: 12, des: 12
-      };
-
-      // 1. Format ISO dengan explicit timezone (Z atau ±HH:MM) -> konversi ke WIB (Asia/Jakarta)
-      let m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T\s]+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/i);
+      const m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
       if (m) {
-        const parsedUtc = new Date(str);
-        if (!isNaN(parsedUtc.getTime())) {
-          const parts = new Intl.DateTimeFormat("en-GB", {
-            timeZone: "Asia/Jakarta",
-            year: "numeric", month: "2-digit", day: "2-digit",
-            hour: "2-digit", minute: "2-digit", second: "2-digit",
-            hour12: false
-          }).formatToParts(parsedUtc);
-          const g = (t) => (parts.find(x => x.type === t) || {}).value || "00";
-          return buildDatePartsFromNumbers(Number(g("year")), Number(g("month")), Number(g("day")), g("hour"), g("minute"), g("second"), true);
-        }
+        return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6] || 0));
       }
-
-      // 1b. Format YYYY-MM-DD HH:mm(:ss) tanpa offset (sudah WIB)
-      m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-      if (m) {
-        return buildDatePartsFromNumbers(Number(m[1]), Number(m[2]), Number(m[3]), m[4], m[5], m[6], m[4] !== undefined);
-      }
-
-      // 2. Format DD/MM/YYYY atau DD-MM-YYYY (umum dari Google Sheet Indonesia)
-      m = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-      if (m) {
-        const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
-        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
-        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
-        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
-        return {
-          yyyy, mm, dd,
-          hh, min, ss,
-          hasTime: m[4] !== undefined,
-          dateLabel: `${monthNames[mm - 1] || mm} ${dd}, ${yyyy}`,
-          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1] || mm} ${yyyy}`
-        };
-      }
-
-      // 3. Format "22 Nov 2026, 16:45 WIB" atau "Nov 22, 2026 16:45"
-      m = str.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-      if (m && monthMap[m[2].toLowerCase()]) {
-        const dd = Number(m[1]), mm = monthMap[m[2].toLowerCase()], yyyy = Number(m[3]);
-        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
-        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
-        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
-        return {
-          yyyy, mm, dd,
-          hh, min, ss,
-          hasTime: m[4] !== undefined,
-          dateLabel: `${monthNames[mm - 1]} ${dd}, ${yyyy}`,
-          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1]} ${yyyy}`
-        };
-      }
-
-      m = str.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-      if (m && monthMap[m[1].toLowerCase()]) {
-        const mm = monthMap[m[1].toLowerCase()], dd = Number(m[2]), yyyy = Number(m[3]);
-        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
-        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
-        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
-        return {
-          yyyy, mm, dd,
-          hh, min, ss,
-          hasTime: m[4] !== undefined,
-          dateLabel: `${monthNames[mm - 1]} ${dd}, ${yyyy}`,
-          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1]} ${yyyy}`
-        };
-      }
-
-      return null;
-    }
-
-    function parseLocalTimestamp(rawTs) {
-      const p = extractRawDateParts(rawTs);
-      if (p) {
-        return new Date(p.yyyy, p.mm - 1, p.dd, Number(p.hh || 0), Number(p.min || 0), Number(p.ss || 0));
-      }
-      return null;
+      const d = new Date(str);
+      return isNaN(d.getTime()) ? null : d;
     }
 
     function formatDisplayDate(tsStr) {
       if (!tsStr || tsStr === "-") return "-";
-      const p = extractRawDateParts(tsStr);
-      if (p) {
-        const timeLine = p.hasTime
-          ? `<br><span class="font-mono-code text-slate-500 text-[10.5px]">${p.hh}:${p.min} WIB</span>`
-          : "";
-        return `<span class="font-semibold text-slate-200">${p.dateLabel}</span>${timeLine}`;
+      const d = parseLocalTimestamp(tsStr);
+      if (d) {
+        const datePart = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        return `<span class="font-semibold text-slate-200">${datePart}</span><br><span class="font-mono-code text-slate-500 text-[10.5px]">${hh}:${mm} WIB</span>`;
       }
-      return `<span class="font-semibold text-slate-200">${String(tsStr).replace(/GMT[+-]\d{4}.*$/i, "").trim()}</span>`;
+      return String(tsStr);
     }
 
     function cleanTimestamp(rawTs) {
       if (!rawTs || rawTs === "-") return "-";
-      const p = extractRawDateParts(rawTs);
-      if (p) {
-        return p.hasTime ? `${p.dateLabelShort}, ${p.hh}:${p.min} WIB` : p.dateLabelShort;
+      const d = parseLocalTimestamp(rawTs);
+      if (d) {
+        const dp = d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        return `${dp}, ${hh}:${mm} WIB`;
       }
       return String(rawTs).replace(/GMT[+-]\d{4}.*$/i, "").trim();
     }
@@ -2657,15 +2557,9 @@
     }
 
     function getNowWibString() {
-      const now = new Date();
-      const parts = new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Jakarta",
-        year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", minute: "2-digit", second: "2-digit",
-        hour12: false
-      }).formatToParts(now);
-      const get = (t) => (parts.find(x => x.type === t) || {}).value || "00";
-      return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
+      const d = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
 
     function applyOptimisticHistoryEntry(division, ticketId, customerName, statusVal, actionLabel, detailText, picName) {
@@ -2701,18 +2595,10 @@
     }
 
     async function sendWorkOrderPayload(payload) {
-      const normalizedPayload = Object.assign({}, payload);
-      if (normalizedPayload.stageDetails && typeof normalizedPayload.stageDetails === "object") {
-        normalizedPayload.stageDetails = JSON.stringify(normalizedPayload.stageDetails);
-      }
-      if (!normalizedPayload.logDetail && normalizedPayload.description) {
-        normalizedPayload.logDetail = `[${normalizedPayload.activeStage || normalizedPayload.ticketType || "Update"}] Status: ${normalizedPayload.status || "-"} | PIC: ${normalizedPayload.pic || "-"} | Ket: ${normalizedPayload.description}`;
-      }
-      const enrichedPayload = Object.assign({ clientTimestamp: getNowWibString() }, normalizedPayload);
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(enrichedPayload)
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
@@ -3166,6 +3052,35 @@
       return list.find(item => String(item.ticketId).trim() === String(ticketId).trim()) || null;
     }
 
+    function findLatestStageTimestamp(stageDef, logsList, fallbackRecord) {
+      const candidates = [];
+      const list = Array.isArray(logsList) ? logsList : [];
+
+      list.forEach(log => {
+        const normalizedLog = Object.assign({}, log, {
+          detail: log.detail || log.description || log.notes || log.message || ""
+        });
+        const parsed = parseResiLogEntry(normalizedLog, "-", "", stageDef);
+        if (parsed.changes.length > 0) {
+          const dt = parseLocalTimestamp(normalizedLog.timestamp);
+          if (dt) {
+            candidates.push({ ms: dt.getTime(), raw: normalizedLog.timestamp });
+          }
+        }
+      });
+
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => b.ms - a.ms);
+        return cleanTimestamp(candidates[0].raw);
+      }
+
+      if (stageDef.key === "staging" && fallbackRecord && fallbackRecord.createdAt && fallbackRecord.createdAt !== "-") {
+        return cleanTimestamp(fallbackRecord.createdAt);
+      }
+
+      return "No timestamp";
+    }
+
     function renderCustomerReceiptHeader(type, ticketId) {
       const banner = document.getElementById("customerReceiptBanner");
       const custNameEl = document.getElementById("receiptCustomerName");
@@ -3197,6 +3112,7 @@
         stripEl.className = "pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs";
         stripEl.innerHTML = SURVEY_STAGE_DEFS.map((st, idx) => {
           const val = normalizeStageVal(cascaded[idx]) || "Queued";
+          const stageTs = findLatestStageTimestamp(st, filteredHistoryLogs, record);
           const isDone = ["Done", "Deal", "Material Ready"].includes(val);
           const isCancel = ["Cancel", "Not Deal"].includes(val);
           const isProg = ["On Progress", "Pending", "Waiting Approval"].includes(val);
@@ -3212,6 +3128,7 @@
             <div class="rounded-xl border px-2.5 py-2 ${toneClass}">
               <p class="text-[10px] font-bold uppercase tracking-wider opacity-80 truncate">${idx + 1}. ${st.label}</p>
               <p class="text-[11px] font-extrabold mt-0.5 truncate">${val}</p>
+              <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${stageTs}</p>
             </div>
           `;
         }).join("");
@@ -3225,13 +3142,14 @@
         statusEl.innerHTML = getStatusPillHtml(overallSt);
 
         const milestones = [
-          { label: "1. Staging", val: stgVal || "Negotiation" },
-          { label: "2. Materials & Equip.", val: matVal },
-          { label: "3. Forward WO", val: fwdVal }
+          { def: HANDOVER_STAGE_DEFS[0], label: "1. Staging", val: stgVal || "Negotiation" },
+          { def: HANDOVER_STAGE_DEFS[1], label: "2. Materials & Equip.", val: matVal },
+          { def: HANDOVER_STAGE_DEFS[2], label: "3. Forward WO", val: fwdVal }
         ];
 
         stripEl.className = "pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs";
         stripEl.innerHTML = milestones.map(m => {
+          const stageTs = findLatestStageTimestamp(m.def, filteredHistoryLogs, record);
           const isDone = m.val === "Deal" || ["Done", "Material Ready"].includes(m.val);
           const isCancel = m.val === "Not Deal" || m.val === "Cancel";
           const isProg = m.val === "Negotiation" || ["On Progress", "Pending", "Waiting Approval"].includes(m.val);
@@ -3247,6 +3165,7 @@
             <div class="rounded-xl border px-2.5 py-2 ${toneClass}">
               <p class="text-[10px] font-bold uppercase tracking-wider opacity-80 truncate">${m.label}</p>
               <p class="text-[11px] font-extrabold mt-0.5 truncate">${m.val}</p>
+              <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${stageTs}</p>
             </div>
           `;
         }).join("");
@@ -3257,6 +3176,8 @@
           ? computeAutoMappingStatus(onetText, partnerText, record.status)
           : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Open");
         const effSt = getEffectiveMappingStatus(rawSt);
+        const onetTs = findLatestStageTimestamp(MAPPING_STAGE_DEFS[0], filteredHistoryLogs, record);
+        const partnerTs = findLatestStageTimestamp(MAPPING_STAGE_DEFS[1], filteredHistoryLogs, record);
 
         metaEl.innerText = `${ticketId} • Division: Business Integration (Onet → Partner Mapping)`;
         statusEl.innerHTML = getStatusPillHtml(effSt);
@@ -3266,10 +3187,12 @@
           <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-300">
             <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">1. Onet</p>
             <p class="text-xs font-extrabold mt-0.5">${onetText}</p>
+            <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${onetTs}</p>
           </div>
           <div class="rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sky-300">
             <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">2. Partner</p>
             <p class="text-xs font-extrabold mt-0.5">${partnerText}</p>
+            <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${partnerTs}</p>
           </div>
           <div class="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-slate-300">
             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Latest Remark</p>
@@ -3534,36 +3457,38 @@
           currentTicketStatus = getEffectiveMappingStatus(ticketRecord.status);
         }
       } else if (chronologicalLogs.length > 0) {
-        const lastLog = chronologicalLogs[chronologicalLogs.length - 1];
-        currentTicketStatus = String(lastLog.status || "Open").trim();
+        const sortedByTime = [...chronologicalLogs].sort((a, b) => {
+          const da = parseLocalTimestamp(a.timestamp);
+          const db = parseLocalTimestamp(b.timestamp);
+          return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+        });
+        currentTicketStatus = String(sortedByTime[sortedByTime.length - 1].status || "Open").trim();
       }
 
-      // Top anchor: initial ticket status & earliest creation timestamp
+      const sortedLogs = [...(chronologicalLogs || [])].sort((a, b) => {
+        const da = parseLocalTimestamp(a.timestamp);
+        const db = parseLocalTimestamp(b.timestamp);
+        return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+      });
+
       let openStatusLabel = "Open";
       if (divisionType === "Handover") {
         const stgNow = ticketRecord ? normalizeHandoverStaging(ticketRecord.staging) : "Negotiation";
-        const firstLogSt = chronologicalLogs.length > 0 ? String(chronologicalLogs[0].status || "").trim() : "";
-        if (stgNow === "Deal" || firstLogSt === "Open") {
-          openStatusLabel = "Open";
-        } else {
-          openStatusLabel = "Pending";
-        }
+        const firstLogSt = sortedLogs.length > 0 ? String(sortedLogs[0].status || "").trim() : "";
+        openStatusLabel = (stgNow === "Deal" || firstLogSt === "Open") ? "Open" : "Pending";
       }
 
-      const candidateTs = [];
+      const openCandidates = [];
       if (ticketRecord && ticketRecord.createdAt && ticketRecord.createdAt !== "-") {
-        candidateTs.push(ticketRecord.createdAt);
+        openCandidates.push(ticketRecord.createdAt);
       }
-      if (chronologicalLogs.length > 0 && chronologicalLogs[0].timestamp) {
-        candidateTs.push(chronologicalLogs[0].timestamp);
-      }
-      if (ticketRecord && ticketRecord.lastUpdated && ticketRecord.lastUpdated !== "-") {
-        candidateTs.push(ticketRecord.lastUpdated);
+      if (sortedLogs.length > 0 && sortedLogs[0].timestamp) {
+        openCandidates.push(sortedLogs[0].timestamp);
       }
 
-      let earliestTsRaw = candidateTs[0] || "-";
+      let earliestTsRaw = openCandidates[0] || "-";
       let earliestTimeMs = Infinity;
-      for (const ts of candidateTs) {
+      for (const ts of openCandidates) {
         const d = parseLocalTimestamp(ts);
         if (d && d.getTime() < earliestTimeMs) {
           earliestTimeMs = d.getTime();
@@ -3571,26 +3496,28 @@
         }
       }
 
-      // Bottom anchor: shown ONLY when ticket status is final (Closed / Done / Cancel / Outcover)
       const isFinalClosed = ["Closed", "Done", "Cancel", "Outcover"].includes(currentTicketStatus);
-      let closedStatusLabel = currentTicketStatus === "Done" ? "Closed" : currentTicketStatus;
+      const closedStatusLabel = currentTicketStatus === "Done" ? "Closed" : currentTicketStatus;
       let latestTsRaw = "-";
       if (isFinalClosed) {
         const endCandidates = [];
-        if (chronologicalLogs.length > 0 && chronologicalLogs[chronologicalLogs.length - 1].timestamp) {
-          endCandidates.push(chronologicalLogs[chronologicalLogs.length - 1].timestamp);
-        }
         if (ticketRecord && ticketRecord.lastUpdated && ticketRecord.lastUpdated !== "-") {
           endCandidates.push(ticketRecord.lastUpdated);
         }
-        latestTsRaw = endCandidates[0] || "-";
+        if (sortedLogs.length > 0 && sortedLogs[sortedLogs.length - 1].timestamp) {
+          endCandidates.push(sortedLogs[sortedLogs.length - 1].timestamp);
+        }
+
         let latestTimeMs = -Infinity;
         for (const ts of endCandidates) {
           const d = parseLocalTimestamp(ts);
-          if (d && d.getTime() > latestTimeMs) {
+          if (d && d.getTime() >= latestTimeMs) {
             latestTimeMs = d.getTime();
             latestTsRaw = ts;
           }
+        }
+        if (!latestTsRaw || latestTsRaw === "-") {
+          latestTsRaw = endCandidates[0] || earliestTsRaw;
         }
       }
 
@@ -3748,7 +3675,6 @@
       const stageDefs = getStageDefsForType(historyTypeActive);
       const stageObj = historyStageFilterKey ? stageDefs.find(s => s.key === historyStageFilterKey) : null;
       const printedAt = new Date().toLocaleString("en-US", {
-        timeZone: "Asia/Jakarta",
         day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
       }) + " WIB";
 
