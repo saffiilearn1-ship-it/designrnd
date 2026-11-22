@@ -777,7 +777,7 @@
             <div>
               <label class="text-slate-400 font-semibold block mb-1">2. Partner</label>
               <select id="newMappingPartner" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
-                <option value="">Not Yet</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Partner">Partner</option><option value="Outcover">Outcover</option>
+                <option value="">Not Yet</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Done">Done</option><option value="Outcover">Outcover</option>
               </select>
             </div>
           </div>
@@ -1699,14 +1699,14 @@
     }
 
     function deriveMappingCoverage(onetVal, partnerVal) {
+      const oVal = normalizeStageVal(onetVal);
       const pVal = normalizeMappingPartnerVal(partnerVal);
-      if (pVal === "Done") return "Partner";
-      if (pVal === "Outcover" || onetVal === "Outcover") return "Outcover";
-      if (onetVal === "Onet") return "Onet";
-      if (onetVal === "Onet*") return "Onet*";
-      if (onetVal === "Need Survey" || onetVal === "On Progress" || pVal === "On Progress" || pVal === "Pending") {
-        return onetVal || pVal;
-      }
+      if (pVal === "Done") return "Done";
+      if (pVal === "Outcover" || oVal === "Outcover") return "Outcover";
+      if (oVal === "Onet") return "Onet";
+      if (oVal === "Onet*") return "Onet*";
+      if (pVal === "On Progress" || pVal === "Pending") return pVal;
+      if (oVal === "Need Survey" || oVal === "On Progress") return oVal;
       return "";
     }
 
