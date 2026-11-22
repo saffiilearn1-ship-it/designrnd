@@ -896,7 +896,7 @@
 
     const MAPPING_STAGE_DEFS = [
       { key: "onet", label: "Onet", fullLabel: "Onet Coverage Check", bracketTags: ["onet"], opts: ["Not Yet", "On Progress", "Need Survey", "Onet", "Onet*", "Outcover"] },
-      { key: "partner", label: "Partner", fullLabel: "Partner / Vendor Check", bracketTags: ["partner"], opts: ["Not Yet", "On Progress", "Pending", "Partner", "Outcover"] }
+      { key: "partner", label: "Partner", fullLabel: "Partner / Vendor Check", bracketTags: ["partner"], opts: ["Not Yet", "On Progress", "Pending", "Done", "Outcover"] }
     ];
 
     let appData = { survey: [], mapping: [], handover: [] };
@@ -1412,23 +1412,23 @@
       });
 
       const mappingNormalized = (appData.mapping || []).map(t => {
-        const rawSt = normalizeMappingStatus(t.status);
-        const effSt = getEffectiveMappingStatus(rawSt);
         const rawCov = normalizeStageVal(t.coverage);
         let onetVal = normalizeStageVal(t.onet);
-        let partnerVal = normalizeStageVal(t.partner);
+        let partnerVal = normalizeMappingPartnerVal(t.partner);
         if (!onetVal && !partnerVal && rawCov) {
           if (rawCov === "Onet" || rawCov === "Onet*") onetVal = rawCov;
-          else if (rawCov === "Partner") partnerVal = "Partner";
+          else if (rawCov === "Partner") partnerVal = "Done";
           else if (rawCov === "Outcover" || rawCov === "Not Cover") onetVal = "Outcover";
         }
+        const computedMapSt = computeAutoMappingStatus(onetVal, partnerVal, t.status);
+        const effSt = getEffectiveMappingStatus(computedMapSt);
         return {
           _kind: "Mapping",
           ...t,
           onet: onetVal,
           partner: partnerVal,
           coverage: rawCov,
-          rawStatus: rawSt,
+          rawStatus: computedMapSt,
           computedStatus: effSt,
           unifiedStatus: effSt,
           kpiStatus: mapToKpiBucket(effSt)
@@ -1688,42 +1688,42 @@
       return s;
     }
 
+    function normalizeMappingPartnerVal(v) {
+      const s = normalizeStageVal(v);
+      return s === "Partner" ? "Done" : s;
+    }
+
     function getEffectiveMappingStatus(rawStatus) {
       const s = normalizeMappingStatus(rawStatus);
       return (s === "Done" || s === "Outcover") ? "Closed" : s;
     }
 
     function deriveMappingCoverage(onetVal, partnerVal) {
-      if (partnerVal === "Partner") return "Partner";
+      const pVal = normalizeMappingPartnerVal(partnerVal);
+      if (pVal === "Done") return "Partner";
+      if (pVal === "Outcover" || onetVal === "Outcover") return "Outcover";
       if (onetVal === "Onet") return "Onet";
       if (onetVal === "Onet*") return "Onet*";
-      if (partnerVal === "Outcover" || onetVal === "Outcover") return "Outcover";
-      if (onetVal === "Need Survey" || onetVal === "On Progress") return onetVal;
+      if (onetVal === "Need Survey" || onetVal === "On Progress" || pVal === "On Progress" || pVal === "Pending") {
+        return onetVal || pVal;
+      }
       return "";
     }
 
     function computeAutoMappingStatus(onetVal, partnerVal, fallbackStatus) {
-      if (partnerVal === "Outcover") return "Outcover";
-      if (partnerVal === "Partner") return "On Progress";
-      if (partnerVal === "On Progress" || partnerVal === "Pending") return "On Progress";
-      if (onetVal === "Onet") return "Done";
-      if (["Onet*", "Outcover", "On Progress", "Need Survey"].includes(onetVal)) return "On Progress";
-      return normalizeMappingStatus(fallbackStatus || "Open");
-    }
+      const oVal = normalizeStageVal(onetVal);
+      const pVal = normalizeMappingPartnerVal(partnerVal);
 
-    function onMappingDrawerStageChange(rowIndex, stageKey) {
-      const stageSel = document.getElementById(`exp-stageval-${rowIndex}`);
-      const statusSel = document.getElementById(`exp-mainstatus-${rowIndex}`);
-      if (!stageSel || !statusSel) return;
-      const val = stageSel.value;
-
-      if (stageKey === "onet") {
-        if (val === "Onet") statusSel.value = "Done";
-        else if (["Onet*", "Outcover", "On Progress", "Need Survey"].includes(val)) statusSel.value = "On Progress";
-      } else if (stageKey === "partner") {
-        if (val === "Outcover") statusSel.value = "Outcover";
-        else if (["Partner", "On Progress", "Pending"].includes(val)) statusSel.value = "On Progress";
+      if (pVal === "Done") return "Done";
+      if (pVal === "Outcover") return "Outcover";
+      if (pVal === "On Progress" || pVal === "Pending") return "On Progress";
+      if (oVal === "Onet") return "Done";
+      if (["Onet*", "Outcover", "On Progress", "Need Survey"].includes(oVal)) return "On Progress";
+      if (!oVal && !pVal) {
+        const fb = normalizeMappingStatus(fallbackStatus);
+        return (fb === "Done" || fb === "Outcover") ? "Open" : fb;
       }
+      return normalizeMappingStatus(fallbackStatus || "Open");
     }
 
     function matchStageTag(titleText, stageObj) {
@@ -2014,7 +2014,7 @@
       const isStepDoneVal = (defKey, val) => {
         if (defKey === "staging") return val === "Deal";
         if (defKey === "onet") return val === "Onet";
-        if (defKey === "partner") return val === "Partner";
+        if (defKey === "partner") return val === "Done" || val === "Partner";
         return ["Done", "Deal", "Material Ready"].includes(val);
       };
 
@@ -2167,12 +2167,10 @@
           .map(log => ({ log, parsed: parseResiLogEntry(log, stageDetailObj.pic, stageDetailObj.note, activeStageObj) }))
           .filter(entry => entry.parsed.changes.length > 0);
 
-        const rawMapTicketStatus = normalizeMappingStatus(t.rawStatus || t.status);
-
         const helperHintHtml = activeStageObj.key === "staging"
           ? `<p class="text-[10.5px] text-slate-400">Solved Survey → <strong class="text-amber-300">Negotiation</strong> (<strong class="text-violet-300">Pending</strong>) • <strong class="text-emerald-400">Deal</strong> = <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = <strong class="text-emerald-400">Closed</strong>.</p>`
           : pipelineType === "Mapping"
-            ? `<p class="text-[10.5px] text-slate-400"><strong class="text-emerald-400">Onet</strong> → Done • <strong class="text-orange-300">Onet* / Outcover</strong> → On Progress &amp; Partner aktif • <strong class="text-sky-400">Partner</strong> → tetap On Progress (atur Ticket Status manual jika sudah selesai).</p>`
+            ? `<p class="text-[10.5px] text-slate-400">Ticket status otomatis: <strong class="text-emerald-400">Onet / Partner Done</strong> → Done • <strong class="text-orange-300">Onet* / Need Survey / On Progress / Pending</strong> → On Progress • <strong class="text-slate-300">Outcover</strong> → Outcover.</p>`
             : "";
 
         const saveHandler = pipelineType === "Handover"
@@ -2181,20 +2179,9 @@
             ? `saveExpandedMappingStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`
             : `saveExpandedSurveyStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`;
 
-        const statusControlHtml = pipelineType === "Mapping"
-          ? `
-              <div class="flex items-center gap-1.5 text-xs">
-                <span class="text-slate-400 font-semibold">Ticket Status:</span>
-                <select id="exp-mainstatus-${t.rowIndex}" data-initial="${rawMapTicketStatus}" class="bg-[#151923] border border-orange-500/40 rounded-lg px-2.5 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
-                  ${["On Progress", "Done", "Outcover"].map(s => `<option value="${s}" ${rawMapTicketStatus === s ? "selected" : ""}>${s}</option>`).join("")}
-                </select>
-              </div>
-            `
-          : `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`;
+        const statusControlHtml = `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`;
 
-        const stageOnChangeAttr = pipelineType === "Mapping"
-          ? `onchange="onMappingDrawerStageChange(${t.rowIndex}, '${activeStageKey}')"`
-          : "";
+        const stageOnChangeAttr = "";
 
         const updateMenuHtml = canEdit ? `
           <div class="bg-[#0d1017] border border-orange-500/30 rounded-2xl p-4 space-y-3">
@@ -2841,22 +2828,22 @@
       }
 
       const rowsHtml = filtered.map((t, idx) => {
-        const rawSt = normalizeMappingStatus(t.status);
-        const effSt = getEffectiveMappingStatus(rawSt);
         const rawCov = normalizeStageVal(t.coverage);
         let onetVal = normalizeStageVal(t.onet);
-        let partnerVal = normalizeStageVal(t.partner);
+        let partnerVal = normalizeMappingPartnerVal(t.partner);
         if (!onetVal && !partnerVal && rawCov) {
           if (rawCov === "Onet" || rawCov === "Onet*") onetVal = rawCov;
-          else if (rawCov === "Partner") partnerVal = "Partner";
+          else if (rawCov === "Partner") partnerVal = "Done";
           else if (rawCov === "Outcover" || rawCov === "Not Cover") onetVal = "Outcover";
         }
+        const computedMapSt = computeAutoMappingStatus(onetVal, partnerVal, t.status);
+        const effSt = getEffectiveMappingStatus(computedMapSt);
         const item = {
           ...t,
           onet: onetVal,
           partner: partnerVal,
           coverage: rawCov,
-          rawStatus: rawSt,
+          rawStatus: computedMapSt,
           computedStatus: effSt,
           unifiedStatus: effSt
         };
@@ -2889,19 +2876,21 @@
       btn.innerText = "Saving...";
       btn.disabled = true;
 
-      const updatedStageVal = normalizeStageVal(document.getElementById(`exp-stageval-${rowIndex}`).value);
-      const selectedTicketStatus = normalizeMappingStatus(document.getElementById(`exp-mainstatus-${rowIndex}`).value);
+      const rawUpdatedVal = document.getElementById(`exp-stageval-${rowIndex}`).value;
+      const updatedStageVal = stageKey === "partner"
+        ? normalizeMappingPartnerVal(rawUpdatedVal)
+        : normalizeStageVal(rawUpdatedVal);
       const autoPic = resolveCurrentPicName();
       const updatedNote = document.getElementById(`exp-note-${rowIndex}`).value.trim();
 
-      const prevStatus = normalizeMappingStatus(item.status);
       const prevOnet = normalizeStageVal(item.onet);
-      const prevPartner = normalizeStageVal(item.partner);
+      const prevPartner = normalizeMappingPartnerVal(item.partner);
+      const prevStatus = computeAutoMappingStatus(prevOnet, prevPartner, item.status);
 
       const newOnet = stageKey === "onet" ? updatedStageVal : prevOnet;
       const newPartner = stageKey === "partner" ? updatedStageVal : prevPartner;
-      const newStatus = selectedTicketStatus || computeAutoMappingStatus(newOnet, newPartner, prevStatus);
-      const newCov = deriveMappingCoverage(newOnet, newPartner) || normalizeStageVal(item.coverage);
+      const newStatus = computeAutoMappingStatus(newOnet, newPartner, prevStatus);
+      const newCov = deriveMappingCoverage(newOnet, newPartner);
 
       const sd = JSON.parse(JSON.stringify(item.stageDetails || {}));
       sd[stageKey] = { pic: autoPic, note: updatedNote };
@@ -3063,10 +3052,12 @@
           `;
         }).join("");
       } else {
-        const rawSt = record ? normalizeMappingStatus(record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "On Progress");
-        const effSt = getEffectiveMappingStatus(rawSt);
         const onetText = (record && normalizeStageVal(record.onet)) || "Not Yet";
-        const partnerText = (record && normalizeStageVal(record.partner)) || "Not Yet";
+        const partnerText = (record && normalizeMappingPartnerVal(record.partner)) || "Not Yet";
+        const rawSt = record
+          ? computeAutoMappingStatus(onetText, partnerText, record.status)
+          : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Open");
+        const effSt = getEffectiveMappingStatus(rawSt);
 
         metaEl.innerText = `${ticketId} • Division: Business Integration (Onet → Partner Mapping)`;
         statusEl.innerHTML = getStatusPillHtml(effSt);
@@ -3538,11 +3529,11 @@
         payload.status = computeHandoverStatus(stg, mat, fwd, "Pending");
       } else {
         const onetV = normalizeStageVal(document.getElementById("newMappingOnet").value);
-        const partnerV = normalizeStageVal(document.getElementById("newMappingPartner").value);
+        const partnerV = normalizeMappingPartnerVal(document.getElementById("newMappingPartner").value);
         const chosenSt = normalizeMappingStatus(document.getElementById("newMappingStatus").value);
         payload.onet = onetV;
         payload.partner = partnerV;
-        payload.status = chosenSt;
+        payload.status = (onetV || partnerV) ? computeAutoMappingStatus(onetV, partnerV, chosenSt) : chosenSt;
         payload.coverage = deriveMappingCoverage(onetV, partnerV);
         payload.pic = resolveCurrentPicName();
         payload.description = document.getElementById("newMappingDesc").value.trim();
