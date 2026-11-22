@@ -1751,13 +1751,14 @@
           return /\bpartner\b/.test(t) && !/\bonet\b/.test(t);
         }
         if (stageOnlyObj.key === "survey") {
-          return /\bsurvey\b/.test(t) && !/report\s*survey/.test(t);
+          const withoutReport = t.replace(/report\s*survey/g, "");
+          return /\bsurvey\b/.test(withoutReport);
         }
         if (stageOnlyObj.key === "reportSurvey") {
           return /report\s*survey/.test(t);
         }
         if (stageOnlyObj.key === "boq") {
-          return /\bboq\b/.test(t);
+          return /\bboq\b|\bpo\b/.test(t);
         }
         return matchStageTag(t, stageOnlyObj);
       };
@@ -2165,7 +2166,7 @@
         });
         const stageEntries = ticketLogs
           .map(log => ({ log, parsed: parseResiLogEntry(log, stageDetailObj.pic, stageDetailObj.note, activeStageObj) }))
-          .filter(entry => entry.parsed.changes.length > 0);
+          .filter(entry => entry.parsed.changes.length > 0 || (entry.parsed.note && entry.parsed.note !== "-" && String(log.detail || "").toLowerCase().includes(activeStageObj.label.toLowerCase())));
 
         const helperHintHtml = activeStageObj.key === "staging"
           ? `<p class="text-[10.5px] text-slate-400">Solved Survey → <strong class="text-amber-300">Negotiation</strong> (<strong class="text-violet-300">Pending</strong>) • <strong class="text-emerald-400">Deal</strong> = <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = <strong class="text-emerald-400">Closed</strong>.</p>`
@@ -3221,7 +3222,7 @@
           || (selIdTrim && logTid && logTid === selIdTrim)
           || (targetCustLower && logCustLower && logCustLower === targetCustLower);
         if (!matchTicket) return false;
-        if (stageObj) {
+        if (stageObj && !historySingleCustomerMode) {
           const parsed = parseResiLogEntry(log, "-", "", stageObj);
           return parsed.changes.length > 0;
         }
