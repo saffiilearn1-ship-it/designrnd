@@ -646,8 +646,9 @@
                 <select id="coverageFilter" onchange="renderActiveTab()" class="hidden bg-[#0d1017] border border-white/15 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-orange-500">
                   <option value="ALL">Coverage: All</option>
                   <option value="Onet">Onet</option>
+                  <option value="Onet*">Onet*</option>
                   <option value="Partner">Partner</option>
-                  <option value="Not Cover">Not Cover</option>
+                  <option value="Outcover">Outcover</option>
                 </select>
               </div>
             </div>
@@ -760,17 +761,23 @@
 
         <!-- Mapping Initial Fields -->
         <div id="newMappingFields" class="space-y-3 hidden bg-white/[0.02] p-3.5 rounded-2xl border border-white/[0.07]">
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div>
-              <label class="text-slate-400 font-semibold block mb-1">Mapping Status</label>
+              <label class="text-slate-400 font-semibold block mb-1">Ticket Status</label>
               <select id="newMappingStatus" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
-                <option value="Open">Open</option><option value="On Progress" selected>On Progress</option><option value="Pending">Pending</option><option value="Done">Done</option>
+                <option value="On Progress" selected>On Progress</option><option value="Done">Done</option><option value="Outcover">Outcover</option>
               </select>
             </div>
             <div>
-              <label class="text-slate-400 font-semibold block mb-1">Coverage</label>
-              <select id="newCoverage" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
-                <option value="">Not Yet</option><option value="Onet">Onet</option><option value="Partner">Partner</option><option value="Not Cover">Not Cover</option>
+              <label class="text-slate-400 font-semibold block mb-1">1. Onet</label>
+              <select id="newMappingOnet" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
+                <option value="">Not Yet</option><option value="On Progress">On Progress</option><option value="Need Survey">Need Survey</option><option value="Onet">Onet</option><option value="Onet*">Onet*</option><option value="Outcover">Outcover</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-slate-400 font-semibold block mb-1">2. Partner</label>
+              <select id="newMappingPartner" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
+                <option value="">Not Yet</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Partner">Partner</option><option value="Outcover">Outcover</option>
               </select>
             </div>
           </div>
@@ -888,8 +895,8 @@
     ];
 
     const MAPPING_STAGE_DEFS = [
-      { key: "mapStatus", label: "Mapping Status", fullLabel: "Mapping Status", bracketTags: ["mapping status", "status"], opts: ["Open", "On Progress", "Pending", "Done"] },
-      { key: "coverage", label: "Coverage", fullLabel: "Coverage Result", bracketTags: ["coverage", "coverage result", "mapping"], opts: ["Not Yet", "Onet", "Partner", "Not Cover"] }
+      { key: "onet", label: "Onet", fullLabel: "Onet Coverage Check", bracketTags: ["onet"], opts: ["Not Yet", "On Progress", "Need Survey", "Onet", "Onet*", "Outcover"] },
+      { key: "partner", label: "Partner", fullLabel: "Partner / Vendor Check", bracketTags: ["partner"], opts: ["Not Yet", "On Progress", "Pending", "Partner", "Outcover"] }
     ];
 
     let appData = { survey: [], mapping: [], handover: [] };
@@ -1255,7 +1262,7 @@
 
       const srvActive = surveyStatuses.filter(s => !["Closed", "Cancel"].includes(s)).length;
       const hndActive = handoverStatuses.filter(s => !["Closed", "Cancel"].includes(s)).length;
-      const mapActive = mappingStatuses.filter(s => !["Done", "Closed", "Cancel"].includes(s)).length;
+      const mapActive = mappingStatuses.filter(s => !["Done", "Outcover", "Closed", "Cancel"].includes(s)).length;
 
       document.getElementById("count-Survey").innerText = srvActive;
       document.getElementById("count-Handover").innerText = hndActive;
@@ -1392,11 +1399,20 @@
       const mappingNormalized = (appData.mapping || []).map(t => {
         const rawSt = normalizeMappingStatus(t.status);
         const effSt = getEffectiveMappingStatus(rawSt);
+        const rawCov = normalizeStageVal(t.coverage);
+        let onetVal = normalizeStageVal(t.onet);
+        let partnerVal = normalizeStageVal(t.partner);
+        if (!onetVal && !partnerVal && rawCov) {
+          if (rawCov === "Onet" || rawCov === "Onet*") onetVal = rawCov;
+          else if (rawCov === "Partner") partnerVal = "Partner";
+          else if (rawCov === "Outcover" || rawCov === "Not Cover") onetVal = "Outcover";
+        }
         return {
           _kind: "Mapping",
           ...t,
-          mapStatus: rawSt,
-          coverage: normalizeStageVal(t.coverage),
+          onet: onetVal,
+          partner: partnerVal,
+          coverage: rawCov,
           rawStatus: rawSt,
           computedStatus: effSt,
           unifiedStatus: effSt,
@@ -1634,12 +1650,47 @@
 
     function normalizeMappingStatus(rawStatus) {
       const s = String(rawStatus || "").trim();
-      return s || "Open";
+      if (!s || s === "Open") return "On Progress";
+      if (s === "Closed") return "Done";
+      return s;
     }
 
     function getEffectiveMappingStatus(rawStatus) {
       const s = normalizeMappingStatus(rawStatus);
-      return (s === "Done" || s === "Closed") ? "Closed" : s;
+      return (s === "Done" || s === "Outcover") ? "Closed" : s;
+    }
+
+    function deriveMappingCoverage(onetVal, partnerVal) {
+      if (partnerVal === "Partner") return "Partner";
+      if (onetVal === "Onet") return "Onet";
+      if (onetVal === "Onet*") return "Onet*";
+      if (partnerVal === "Outcover" || onetVal === "Outcover") return "Outcover";
+      if (onetVal === "Need Survey" || onetVal === "On Progress") return onetVal;
+      return "";
+    }
+
+    function computeAutoMappingStatus(onetVal, partnerVal, fallbackStatus) {
+      if (partnerVal === "Outcover") return "Outcover";
+      if (partnerVal === "Partner") return "On Progress";
+      if (partnerVal === "On Progress" || partnerVal === "Pending") return "On Progress";
+      if (onetVal === "Onet") return "Done";
+      if (["Onet*", "Outcover", "On Progress", "Need Survey"].includes(onetVal)) return "On Progress";
+      return normalizeMappingStatus(fallbackStatus || "On Progress");
+    }
+
+    function onMappingDrawerStageChange(rowIndex, stageKey) {
+      const stageSel = document.getElementById(`exp-stageval-${rowIndex}`);
+      const statusSel = document.getElementById(`exp-mainstatus-${rowIndex}`);
+      if (!stageSel || !statusSel) return;
+      const val = stageSel.value;
+
+      if (stageKey === "onet") {
+        if (val === "Onet") statusSel.value = "Done";
+        else if (["Onet*", "Outcover", "On Progress", "Need Survey"].includes(val)) statusSel.value = "On Progress";
+      } else if (stageKey === "partner") {
+        if (val === "Outcover") statusSel.value = "Outcover";
+        else if (["Partner", "On Progress", "Pending"].includes(val)) statusSel.value = "On Progress";
+      }
     }
 
     function matchStageTag(titleText, stageObj) {
@@ -1895,19 +1946,21 @@
 
       const isStepDoneVal = (defKey, val) => {
         if (defKey === "staging") return val === "Deal";
-        if (defKey === "coverage") return ["Onet", "Partner"].includes(val);
+        if (defKey === "onet") return val === "Onet";
+        if (defKey === "partner") return val === "Partner";
         return ["Done", "Deal", "Material Ready"].includes(val);
       };
 
       const isStepCancelVal = (defKey, val) => {
         if (defKey === "staging") return val === "Not Deal";
-        if (defKey === "coverage") return val === "Not Cover";
+        if (defKey === "onet" || defKey === "partner") return val === "Outcover";
         return ["Cancel", "Not Deal"].includes(val);
       };
 
       const isStepActiveVal = (defKey, val) => {
         if (defKey === "staging") return val === "Negotiation";
-        if (defKey === "mapStatus") return ["Open", "Pending", "On Progress"].includes(val);
+        if (defKey === "onet") return ["Onet*", "On Progress", "Need Survey"].includes(val);
+        if (defKey === "partner") return ["On Progress", "Pending"].includes(val);
         return ["Pending", "On Progress", "Waiting Approval"].includes(val);
       };
 
@@ -1918,9 +1971,7 @@
           ${stageDefs.map((st, sIdx) => {
             const rawVal = st.key === "staging"
               ? normalizeHandoverStaging(t[st.key])
-              : st.key === "mapStatus"
-                ? normalizeMappingStatus(t.mapStatus || t.status)
-                : normalizeStageVal(t[st.key]);
+              : normalizeStageVal(t[st.key]);
             const isSelectedStage = isExpanded && st.key === activeStageKey;
 
             const isDone = isStepDoneVal(st.key, rawVal);
@@ -1938,10 +1989,8 @@
               const prevDef = stageDefs[sIdx - 1];
               const prevVal = prevDef.key === "staging"
                 ? normalizeHandoverStaging(t[prevDef.key])
-                : prevDef.key === "mapStatus"
-                  ? normalizeMappingStatus(t.mapStatus || t.status)
-                  : normalizeStageVal(t[prevDef.key]);
-              if (isStepDoneVal(prevDef.key, prevVal) || (prevDef.key === "mapStatus" && prevVal === "On Progress")) {
+                : normalizeStageVal(t[prevDef.key]);
+              if (isStepDoneVal(prevDef.key, prevVal) || (prevDef.key === "onet" && (prevVal === "Onet*" || prevVal === "Outcover"))) {
                 isOngoingStep = true;
               }
             }
@@ -1950,14 +1999,16 @@
             const prevVal = prevDef
               ? (prevDef.key === "staging"
                   ? normalizeHandoverStaging(t[prevDef.key])
-                  : prevDef.key === "mapStatus"
-                    ? normalizeMappingStatus(t.mapStatus || t.status)
-                    : normalizeStageVal(t[prevDef.key]))
+                  : normalizeStageVal(t[prevDef.key]))
               : "";
-            const prevStageDone = prevDef ? isStepDoneVal(prevDef.key, prevVal) : false;
+            const prevStageDone = prevDef
+              ? (isStepDoneVal(prevDef.key, prevVal) || (prevDef.key === "onet" && (prevVal === "Onet*" || prevVal === "Outcover")))
+              : false;
 
             const leftLineColor = prevStageDone ? "bg-emerald-500/80" : "bg-white/10";
-            const rightLineColor = isDone ? "bg-emerald-500/80" : "bg-white/10";
+            const rightLineColor = (isDone || (st.key === "onet" && (rawVal === "Onet*" || rawVal === "Outcover")))
+              ? "bg-orange-500/80"
+              : "bg-white/10";
 
             let circleStyle = "bg-[#0d1017] border border-white/15 text-slate-500";
             let iconHtml = dotSvg;
@@ -2023,9 +2074,7 @@
         const activeStageObj = stageDefs.find(s => s.key === activeStageKey) || stageDefs[0];
         const currentStageVal = activeStageObj.key === "staging"
           ? normalizeHandoverStaging(t[activeStageKey])
-          : activeStageObj.key === "mapStatus"
-            ? normalizeMappingStatus(t.mapStatus || t.status)
-            : normalizeStageVal(t[activeStageKey]);
+          : normalizeStageVal(t[activeStageKey]);
         const fallbackMapDetail = pipelineType === "Mapping"
           ? { pic: t.pic || "", note: t.description || "" }
           : { pic: "", note: "" };
@@ -2040,10 +2089,12 @@
           .map(log => ({ log, parsed: parseResiLogEntry(log, stageDetailObj.pic, stageDetailObj.note, activeStageObj) }))
           .filter(entry => entry.parsed.changes.length > 0);
 
+        const rawMapTicketStatus = normalizeMappingStatus(t.rawStatus || t.status);
+
         const helperHintHtml = activeStageObj.key === "staging"
           ? `<p class="text-[10.5px] text-slate-400">Solved Survey → <strong class="text-amber-300">Negotiation</strong> (<strong class="text-violet-300">Pending</strong>) • <strong class="text-emerald-400">Deal</strong> = <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = <strong class="text-emerald-400">Closed</strong>.</p>`
           : pipelineType === "Mapping"
-            ? `<p class="text-[10.5px] text-slate-400">Update <strong class="text-orange-300">${activeStageObj.label}</strong> &amp; route/vendor notes below. Every save appends to the chronological activity receipt.</p>`
+            ? `<p class="text-[10.5px] text-slate-400"><strong class="text-emerald-400">Onet</strong> → Done • <strong class="text-orange-300">Onet* / Outcover</strong> → On Progress &amp; Partner aktif • <strong class="text-sky-400">Partner</strong> → tetap On Progress (atur Ticket Status manual jika sudah selesai).</p>`
             : "";
 
         const saveHandler = pipelineType === "Handover"
@@ -2052,6 +2103,30 @@
             ? `saveExpandedMappingStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`
             : `saveExpandedSurveyStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`;
 
+        const statusControlHtml = pipelineType === "Mapping"
+          ? `
+              <div class="flex items-center gap-1.5 text-xs">
+                <span class="text-slate-400 font-semibold">Ticket Status:</span>
+                <select id="exp-mainstatus-${t.rowIndex}" data-initial="${rawMapTicketStatus}" class="bg-[#151923] border border-orange-500/40 rounded-lg px-2.5 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
+                  ${["On Progress", "Done", "Outcover"].map(s => `<option value="${s}" ${rawMapTicketStatus === s ? "selected" : ""}>${s}</option>`).join("")}
+                </select>
+              </div>
+            `
+          : (isAdmin
+              ? `
+                <div class="flex items-center gap-1.5 text-xs">
+                  <span class="text-slate-400">Override Status:</span>
+                  <select id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" class="bg-[#151923] border border-white/15 rounded-lg px-2 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
+                    ${["Negotiation", "Open", "On Progress", "Pending", "Closed", "Cancel"].map(s => `<option value="${s}" ${t.computedStatus === s ? "selected" : ""}>${s}</option>`).join("")}
+                  </select>
+                </div>
+              `
+              : `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`);
+
+        const stageOnChangeAttr = pipelineType === "Mapping"
+          ? `onchange="onMappingDrawerStageChange(${t.rowIndex}, '${activeStageKey}')"`
+          : "";
+
         const updateMenuHtml = canEdit ? `
           <div class="bg-[#0d1017] border border-orange-500/30 rounded-2xl p-4 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] pb-2.5">
@@ -2059,14 +2134,7 @@
                 <span class="text-xs font-extrabold text-orange-400">Stage: ${activeStageObj.fullLabel}</span>
                 ${getStatusPillHtml(headerDisplayStatus)}
               </div>
-              ${(isAdmin && pipelineType !== "Mapping") ? `
-                <div class="flex items-center gap-1.5 text-xs">
-                  <span class="text-slate-400">Override Status:</span>
-                  <select id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" class="bg-[#151923] border border-white/15 rounded-lg px-2 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
-                    ${["Negotiation", "Open", "On Progress", "Pending", "Closed", "Cancel"].map(s => `<option value="${s}" ${t.computedStatus === s ? "selected" : ""}>${s}</option>`).join("")}
-                  </select>
-                </div>
-              ` : `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`}
+              ${statusControlHtml}
             </div>
 
             ${helperHintHtml}
@@ -2074,7 +2142,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs items-end">
               <div>
                 <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">${activeStageObj.label} State</label>
-                <select id="exp-stageval-${t.rowIndex}" class="w-full bg-[#151923] border border-white/15 rounded-xl px-3 py-2 font-bold text-white focus:border-orange-500 focus:outline-none">
+                <select id="exp-stageval-${t.rowIndex}" ${stageOnChangeAttr} class="w-full bg-[#151923] border border-white/15 rounded-xl px-3 py-2 font-bold text-white focus:border-orange-500 focus:outline-none">
                   ${activeStageObj.opts.map(o => {
                     const v = o === "Not Yet" ? "" : o;
                     return `<option value="${v}" ${currentStageVal === v ? "selected" : ""}>${o}</option>`;
@@ -2184,66 +2252,6 @@
           <td class="py-3.5 px-4 text-right text-xs text-slate-300 whitespace-nowrap">${formatDisplayDate(t.lastUpdated)}</td>
           <td class="py-3.5 px-4 text-center whitespace-nowrap">
             <button onclick="openHistoryModal('${pipelineType}', '${t.ticketId}', null, true)" class="text-[11px] font-bold text-slate-200 hover:text-orange-300 bg-white/[0.04] hover:bg-orange-500/15 px-3 py-1.5 rounded-xl border border-white/10 hover:border-orange-500/35 transition cursor-pointer">
-              Activity Log
-            </button>
-          </td>
-        </tr>
-      `;
-    }
-
-    function buildMappingRowHtml(item, displayNo, showDivBadge = false, idPrefix = "cmb") {
-      const canEdit = Boolean(currentUser);
-      const autoPicName = currentUser ? formatPicLabel(currentUser.name) : "";
-      const r = item.rowIndex;
-      const rawSt = item.rawStatus || normalizeMappingStatus(item.status);
-      const effSt = item.unifiedStatus || getEffectiveMappingStatus(rawSt);
-
-      return `
-        <tr class="border-b border-white/[0.06] hover:bg-white/[0.02] align-top transition">
-          <td class="py-3.5 px-4 font-mono-code font-bold text-slate-500 text-xs w-12 text-center">${displayNo}</td>
-          <td class="py-3.5 px-4 whitespace-nowrap">
-            ${getStatusPillHtml(effSt)}
-            ${showDivBadge ? `<div class="mt-1.5"><span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/25">Mapping</span></div>` : ""}
-          </td>
-          <td class="py-3.5 px-4 min-w-[210px]">
-            <p class="font-bold text-white text-sm leading-snug">${item.customer || "-"}</p>
-            <span class="text-[11px] font-mono-code text-orange-400 font-semibold mt-0.5 inline-block">${item.ticketId}</span>
-          </td>
-          <td class="py-3.5 px-4 min-w-[340px]">
-            <div class="bg-[#0d1017] border border-white/[0.08] rounded-2xl p-3 text-xs space-y-2">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Status:</span>
-                  ${canEdit ? `
-                    <select id="${idPrefix}-map-status-${r}" class="bg-[#151923] border border-white/15 rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:border-orange-500 focus:outline-none">
-                      ${["Open", "On Progress", "Pending", "Done"].map(opt => `<option value="${opt}" ${rawSt === opt ? "selected" : ""}>${opt}</option>`).join("")}
-                    </select>
-                  ` : getStatusPillHtml(rawSt)}
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Coverage:</span>
-                  ${canEdit ? `
-                    <select id="${idPrefix}-map-cov-${r}" class="bg-[#151923] border border-white/15 rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:border-orange-500 focus:outline-none">
-                      <option value="" ${!item.coverage ? "selected" : ""}>Not Yet</option>
-                      <option value="Onet" ${item.coverage === "Onet" ? "selected" : ""}>Onet</option>
-                      <option value="Partner" ${item.coverage === "Partner" ? "selected" : ""}>Partner</option>
-                      <option value="Not Cover" ${item.coverage === "Not Cover" ? "selected" : ""}>Not Cover</option>
-                    </select>
-                  ` : getStatusPillHtml(item.coverage || "Not Yet")}
-                </div>
-              </div>
-              ${canEdit ? `
-                <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
-                  <textarea id="${idPrefix}-map-desc-${r}" rows="1" placeholder="Route notes..." class="flex-1 bg-[#151923] border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-orange-500 focus:outline-none">${item.description || ""}</textarea>
-                  <button onclick="updateMappingRowGeneric(${r}, '${idPrefix}', this)" class="bg-orange-500 hover:bg-orange-400 text-slate-950 px-3.5 py-1.5 rounded-lg text-xs font-extrabold shrink-0 transition cursor-pointer">Save &amp; Notify</button>
-                </div>
-                <p class="text-[10.5px] text-slate-400">PIC: <strong class="text-orange-400">${autoPicName}</strong></p>
-              ` : `<p class="text-slate-300 whitespace-pre-line leading-relaxed">${item.description || "-"}</p>`}
-            </div>
-          </td>
-          <td class="py-3.5 px-4 text-right text-xs text-slate-300 whitespace-nowrap">${formatDisplayDate(item.lastUpdated)}</td>
-          <td class="py-3.5 px-4 text-center whitespace-nowrap">
-            <button onclick="openHistoryModal('Mapping', '${item.ticketId}', null, true)" class="text-[11px] font-bold text-slate-200 hover:text-orange-300 bg-white/[0.04] hover:bg-orange-500/15 px-3 py-1.5 rounded-xl border border-white/10 hover:border-orange-500/35 transition cursor-pointer">
               Activity Log
             </button>
           </td>
@@ -2694,10 +2702,19 @@
       const rowsHtml = filtered.map((t, idx) => {
         const rawSt = normalizeMappingStatus(t.status);
         const effSt = getEffectiveMappingStatus(rawSt);
+        const rawCov = normalizeStageVal(t.coverage);
+        let onetVal = normalizeStageVal(t.onet);
+        let partnerVal = normalizeStageVal(t.partner);
+        if (!onetVal && !partnerVal && rawCov) {
+          if (rawCov === "Onet" || rawCov === "Onet*") onetVal = rawCov;
+          else if (rawCov === "Partner") partnerVal = "Partner";
+          else if (rawCov === "Outcover" || rawCov === "Not Cover") onetVal = "Outcover";
+        }
         const item = {
           ...t,
-          mapStatus: rawSt,
-          coverage: normalizeStageVal(t.coverage),
+          onet: onetVal,
+          partner: partnerVal,
+          coverage: rawCov,
           rawStatus: rawSt,
           computedStatus: effSt,
           unifiedStatus: effSt
@@ -2712,7 +2729,7 @@
               <th class="py-3 px-4 w-12 text-center">#</th>
               <th class="py-3 px-4">Status</th>
               <th class="py-3 px-4">Customer / ID</th>
-              <th class="py-3 px-4 text-center min-w-[360px]">Mapping Pipeline (Mapping Status → Coverage)</th>
+              <th class="py-3 px-4 text-center min-w-[360px]">Mapping Pipeline (Onet → Partner)</th>
               <th class="py-3 px-4 text-right">Last Update</th>
               <th class="py-3 px-4 text-center">Logs</th>
             </tr>
@@ -2731,15 +2748,19 @@
       btn.innerText = "Saving...";
       btn.disabled = true;
 
-      const updatedStageVal = document.getElementById(`exp-stageval-${rowIndex}`).value;
+      const updatedStageVal = normalizeStageVal(document.getElementById(`exp-stageval-${rowIndex}`).value);
+      const selectedTicketStatus = normalizeMappingStatus(document.getElementById(`exp-mainstatus-${rowIndex}`).value);
       const autoPic = formatPicLabel(currentUser.name);
       const updatedNote = document.getElementById(`exp-note-${rowIndex}`).value.trim();
 
       const prevStatus = normalizeMappingStatus(item.status);
-      const prevCov = normalizeStageVal(item.coverage);
+      const prevOnet = normalizeStageVal(item.onet);
+      const prevPartner = normalizeStageVal(item.partner);
 
-      const newStatus = stageKey === "mapStatus" ? normalizeMappingStatus(updatedStageVal) : prevStatus;
-      const newCov = stageKey === "coverage" ? normalizeStageVal(updatedStageVal) : prevCov;
+      const newOnet = stageKey === "onet" ? updatedStageVal : prevOnet;
+      const newPartner = stageKey === "partner" ? updatedStageVal : prevPartner;
+      const newStatus = selectedTicketStatus || computeAutoMappingStatus(newOnet, newPartner, prevStatus);
+      const newCov = deriveMappingCoverage(newOnet, newPartner) || normalizeStageVal(item.coverage);
 
       const sd = JSON.parse(JSON.stringify(item.stageDetails || {}));
       sd[stageKey] = { pic: autoPic, note: updatedNote };
@@ -2749,7 +2770,10 @@
         action: "update",
         token: authToken,
         rowIndex: rowIndex,
+        activeStage: stageKey,
         status: newStatus,
+        onet: newOnet,
+        partner: newPartner,
         coverage: newCov,
         pic: autoPic,
         description: updatedNote,
@@ -2761,16 +2785,23 @@
 
         const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
         item.status = newStatus;
+        item.onet = newOnet;
+        item.partner = newPartner;
         item.coverage = newCov;
         item.description = updatedNote;
         item.pic = autoPic;
         item.stageDetails = sd;
         item.lastUpdated = nowStr;
 
-        const stageLabel = stageKey === "coverage" ? "Coverage" : "Mapping Status";
-        const oldDisp = stageKey === "coverage" ? (prevCov || "Not Yet") : prevStatus;
-        const newDisp = stageKey === "coverage" ? (newCov || "Not Yet") : newStatus;
-        const logDetail = `[${stageLabel}] ${stageLabel}: ${oldDisp} → ${newDisp}${updatedNote ? ` | Ket: ${updatedNote}` : ""} | PIC: ${autoPic}`;
+        const stageLabel = stageKey === "partner" ? "Partner" : "Onet";
+        const oldDisp = stageKey === "partner" ? (prevPartner || "Not Yet") : (prevOnet || "Not Yet");
+        const newDisp = stageKey === "partner" ? (newPartner || "Not Yet") : (newOnet || "Not Yet");
+        let logDetail = `[${stageLabel}] ${stageLabel}: ${oldDisp} → ${newDisp}`;
+        if (prevStatus !== newStatus) {
+          logDetail += `; Ticket Status: ${prevStatus} → ${newStatus}`;
+        }
+        if (updatedNote) logDetail += ` | Ket: ${updatedNote}`;
+        logDetail += ` | PIC: ${autoPic}`;
         applyOptimisticHistoryEntry("Mapping", ticketId, item.customer, newStatus, "UPDATE", logDetail, autoPic);
 
         refreshAllViewsOptimistic();
@@ -2880,21 +2911,26 @@
           `;
         }).join("");
       } else {
-        const rawSt = record ? normalizeMappingStatus(record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Open");
+        const rawSt = record ? normalizeMappingStatus(record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "On Progress");
         const effSt = getEffectiveMappingStatus(rawSt);
-        const covText = (record && record.coverage) || "Not Yet";
+        const onetText = (record && normalizeStageVal(record.onet)) || "Not Yet";
+        const partnerText = (record && normalizeStageVal(record.partner)) || "Not Yet";
 
-        metaEl.innerText = `${ticketId} • Division: Business Integration (Coverage Mapping)`;
+        metaEl.innerText = `${ticketId} • Division: Business Integration (Onet → Partner Mapping)`;
         statusEl.innerHTML = getStatusPillHtml(effSt);
 
-        stripEl.className = "pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs";
+        stripEl.className = "pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs";
         stripEl.innerHTML = `
+          <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-300">
+            <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">1. Onet</p>
+            <p class="text-xs font-extrabold mt-0.5">${onetText}</p>
+          </div>
           <div class="rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sky-300">
-            <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">Coverage Result</p>
-            <p class="text-xs font-extrabold mt-0.5">${covText}</p>
+            <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">2. Partner</p>
+            <p class="text-xs font-extrabold mt-0.5">${partnerText}</p>
           </div>
           <div class="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-slate-300">
-            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Latest Technical Note</p>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Latest Remark</p>
             <p class="text-xs font-semibold mt-0.5 truncate">${(record && record.description) || "-"}</p>
           </div>
         `;
@@ -3311,10 +3347,18 @@
         payload.forwardWo = fwd;
         payload.status = computeHandoverStatus(stg, mat, fwd, "Pending");
       } else {
-        payload.status = document.getElementById("newMappingStatus").value;
-        payload.coverage = document.getElementById("newCoverage").value;
+        const onetV = normalizeStageVal(document.getElementById("newMappingOnet").value);
+        const partnerV = normalizeStageVal(document.getElementById("newMappingPartner").value);
+        const chosenSt = normalizeMappingStatus(document.getElementById("newMappingStatus").value);
+        payload.onet = onetV;
+        payload.partner = partnerV;
+        payload.status = chosenSt;
+        payload.coverage = deriveMappingCoverage(onetV, partnerV);
         payload.pic = formatPicLabel(currentUser.name);
         payload.description = document.getElementById("newMappingDesc").value.trim();
+        payload.stageDetails = {};
+        if (onetV && payload.description) payload.stageDetails.onet = { pic: payload.pic, note: payload.description };
+        if (partnerV && payload.description) payload.stageDetails.partner = { pic: payload.pic, note: payload.description };
       }
 
       try {
@@ -3362,9 +3406,12 @@
             customer: customer,
             ticketId: tempId,
             workOrderId: tempId,
+            onet: payload.onet,
+            partner: payload.partner,
             coverage: payload.coverage,
             description: payload.description,
             pic: payload.pic,
+            stageDetails: payload.stageDetails,
             lastUpdated: nowStr
           });
         }
