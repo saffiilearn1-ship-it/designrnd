@@ -765,7 +765,7 @@
             <div>
               <label class="text-slate-400 font-semibold block mb-1">Ticket Status</label>
               <select id="newMappingStatus" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
-                <option value="On Progress" selected>On Progress</option><option value="Done">Done</option><option value="Outcover">Outcover</option>
+                <option value="Open" selected>Open</option><option value="On Progress">On Progress</option><option value="Done">Done</option><option value="Outcover">Outcover</option>
               </select>
             </div>
             <div>
@@ -1650,7 +1650,7 @@
 
     function normalizeMappingStatus(rawStatus) {
       const s = String(rawStatus || "").trim();
-      if (!s || s === "Open") return "On Progress";
+      if (!s) return "Open";
       if (s === "Closed") return "Done";
       return s;
     }
@@ -1675,7 +1675,7 @@
       if (partnerVal === "On Progress" || partnerVal === "Pending") return "On Progress";
       if (onetVal === "Onet") return "Done";
       if (["Onet*", "Outcover", "On Progress", "Need Survey"].includes(onetVal)) return "On Progress";
-      return normalizeMappingStatus(fallbackStatus || "On Progress");
+      return normalizeMappingStatus(fallbackStatus || "Open");
     }
 
     function onMappingDrawerStageChange(rowIndex, stageKey) {
@@ -1978,20 +1978,23 @@
             const isCancel = isStepCancelVal(st.key, rawVal);
             const isActiveState = isStepActiveVal(st.key, rawVal);
 
+            const isTicketOpen = (t.rawStatus === "Open") || (t.computedStatus === "Open");
             let isOngoingStep = false;
-            if (isActiveState && st.key !== "staging") {
-              isOngoingStep = true;
-            } else if (st.key === "staging" && rawVal === "Negotiation" && t.computedStatus !== "Closed") {
-              isOngoingStep = true;
-            } else if (sIdx === 0 && t.computedStatus === "On Progress" && !rawVal) {
-              isOngoingStep = true;
-            } else if (sIdx > 0 && !rawVal) {
-              const prevDef = stageDefs[sIdx - 1];
-              const prevVal = prevDef.key === "staging"
-                ? normalizeHandoverStaging(t[prevDef.key])
-                : normalizeStageVal(t[prevDef.key]);
-              if (isStepDoneVal(prevDef.key, prevVal) || (prevDef.key === "onet" && (prevVal === "Onet*" || prevVal === "Outcover"))) {
+            if (!isTicketOpen) {
+              if (isActiveState && st.key !== "staging") {
                 isOngoingStep = true;
+              } else if (st.key === "staging" && rawVal === "Negotiation" && t.computedStatus !== "Closed") {
+                isOngoingStep = true;
+              } else if (sIdx === 0 && t.computedStatus === "On Progress" && !rawVal) {
+                isOngoingStep = true;
+              } else if (sIdx > 0 && !rawVal) {
+                const prevDef = stageDefs[sIdx - 1];
+                const prevVal = prevDef.key === "staging"
+                  ? normalizeHandoverStaging(t[prevDef.key])
+                  : normalizeStageVal(t[prevDef.key]);
+                if (isStepDoneVal(prevDef.key, prevVal) || (prevDef.key === "onet" && (prevVal === "Onet*" || prevVal === "Outcover"))) {
+                  isOngoingStep = true;
+                }
               }
             }
 
@@ -2028,12 +2031,15 @@
               labelColor = "text-slate-400 font-bold";
               subText = rawVal;
               subColor = "text-slate-500 font-semibold";
-            } else if (isOngoingStep || isActiveState) {
+            } else if (isOngoingStep || (isActiveState && !isTicketOpen)) {
               circleStyle = "bg-orange-500/20 border-2 border-orange-500 text-orange-400";
               iconHtml = dotSvg;
               labelColor = "text-orange-300 font-bold";
-              subText = st.key === "staging" ? (rawVal || "Negotiation") : (rawVal || "Pending");
+              subText = st.key === "staging" ? (rawVal || "Negotiation") : (rawVal || "Queued");
               subColor = "text-orange-400 font-semibold";
+            } else if (!rawVal) {
+              subText = "Queued";
+              subColor = "text-slate-500";
             }
 
             if (isSelectedStage) {
@@ -2108,7 +2114,7 @@
               <div class="flex items-center gap-1.5 text-xs">
                 <span class="text-slate-400 font-semibold">Ticket Status:</span>
                 <select id="exp-mainstatus-${t.rowIndex}" data-initial="${rawMapTicketStatus}" class="bg-[#151923] border border-orange-500/40 rounded-lg px-2.5 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
-                  ${["On Progress", "Done", "Outcover"].map(s => `<option value="${s}" ${rawMapTicketStatus === s ? "selected" : ""}>${s}</option>`).join("")}
+                  ${["Open", "On Progress", "Done", "Outcover"].map(s => `<option value="${s}" ${rawMapTicketStatus === s ? "selected" : ""}>${s}</option>`).join("")}
                 </select>
               </div>
             `
