@@ -1285,6 +1285,16 @@
       document.getElementById("count-All").innerText = srvActive + hndActive + mapActive;
     }
 
+    function normalizeRecordTimestamps(item) {
+      if (!item || typeof item !== "object") return item;
+      const createdFallback = item.createdAt || item.created_at || item.dateCreated || item.timestamp || "";
+      const updatedFallback = item.lastUpdated || item.updatedAt || item.updated_at || item.timestamp || createdFallback || "";
+      return Object.assign({}, item, {
+        createdAt: createdFallback || updatedFallback,
+        lastUpdated: updatedFallback || createdFallback
+      });
+    }
+
     async function fetchAllData() {
       if (needAttentionExpanded) {
         document.getElementById("loader").classList.remove("hidden");
@@ -1295,7 +1305,8 @@
         const res = await fetch(API_URL);
         const parsed = await res.json();
         const nowMs = Date.now();
-        const applyRecentOverride = (arr) => arr.map(item => {
+        const applyRecentOverride = (arr) => arr.map(rawItem => {
+          const item = normalizeRecordTimestamps(rawItem);
           const tid = String(item.ticketId || "").trim();
           const ov = recentStageOverrides[tid];
           if (ov && (nowMs - ov.ts) < 12000) {
@@ -1577,12 +1588,59 @@
     }
 
     function parseLocalTimestamp(rawTs) {
-      if (!rawTs || rawTs === "-") return null;
-      const str = String(rawTs).trim();
-      const m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-      if (m) {
-        return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6] || 0));
+      if (rawTs === null || rawTs === undefined || rawTs === "" || rawTs === "-") return null;
+      if (rawTs instanceof Date) return isNaN(rawTs.getTime()) ? null : rawTs;
+
+      // Handle numeric timestamp (ms/sec) or Google Sheets serial date number
+      if (typeof rawTs === "number" && !isNaN(rawTs)) {
+        if (rawTs > 1e11) return new Date(rawTs);
+        if (rawTs > 1e8) return new Date(rawTs * 1000);
+        if (rawTs > 20000 && rawTs < 100000) {
+          const utcDays = Math.floor(rawTs - 25569);
+          const utcValue = utcDays * 86400;
+          const fractionalDay = rawTs - Math.floor(rawTs) + 0.0000001;
+          const totalSeconds = Math.floor(86400 * fractionalDay);
+          const d = new Date(utcValue * 1000);
+          return new Date(
+            d.getUTCFullYear(),
+            d.getUTCMonth(),
+            d.getUTCDate(),
+            Math.floor(totalSeconds / 3600),
+            Math.floor((totalSeconds % 3600) / 60),
+            totalSeconds % 60
+          );
+        }
       }
+
+      const str = String(rawTs).trim();
+
+      // 1. YYYY-MM-DD HH:mm:ss or YYYY/MM/DD HH.mm.ss (local timestamp without Z/offset)
+      const ymd = str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[T ](\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?)?$/);
+      if (ymd) {
+        return new Date(
+          Number(ymd[1]),
+          Number(ymd[2]) - 1,
+          Number(ymd[3]),
+          Number(ymd[4] || 0),
+          Number(ymd[5] || 0),
+          Number(ymd[6] || 0)
+        );
+      }
+
+      // 2. DD/MM/YYYY HH:mm:ss or DD-MM-YYYY HH.mm.ss (Indonesian / Sheets locale)
+      const dmy = str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})(?:[T ,]+(\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?)?$/);
+      if (dmy) {
+        return new Date(
+          Number(dmy[3]),
+          Number(dmy[2]) - 1,
+          Number(dmy[1]),
+          Number(dmy[4] || 0),
+          Number(dmy[5] || 0),
+          Number(dmy[6] || 0)
+        );
+      }
+
+      // 3. Fallback standard ISO / RFC date
       const d = new Date(str);
       return isNaN(d.getTime()) ? null : d;
     }
@@ -1787,8 +1845,18 @@
       );
     }
 
+    function getRawLogDetail(log) {
+      if (!log || typeof log !== "object") return "";
+      return String(log.detail || log.description || log.notes || log.message || log.log || "").trim();
+    }
+
+    function getRawLogTimestamp(log) {
+      if (!log || typeof log !== "object") return "";
+      return log.timestamp || log.createdAt || log.created_at || log.date || log.time || "";
+    }
+
     function parseResiLogEntry(log, fallbackPic, fallbackNote, stageOnlyObj = null) {
-      const detail = String(log.detail || "").trim();
+      const detail = getRawLogDetail(log);
       const blocks = detail.split(";").map(s => s.trim()).filter(Boolean);
 
       const changes = [];
@@ -2213,7 +2281,7 @@
         const ticketLogs = historyCacheForType.filter(log => {
           const lTid = String(log.ticketId || log.workOrderId || log.id || log.ticket_id || "").trim().toLowerCase();
           const lCust = String(log.customer || log.workOrderName || log.client || log.customerName || "").trim().toLowerCase();
-          const lDetail = String(log.detail || log.description || log.notes || log.message || "").toLowerCase();
+          const lDetail = getRawLogDetail(log).toLowerCase();
           if (lTid && tidClean) return lTid === tidClean;
           if (custLower && lCust) return lCust === custLower;
           if (custLower && lDetail) return lDetail.includes(custLower);
@@ -2223,7 +2291,8 @@
         const stageEntries = ticketLogs
           .map(log => {
             const normalizedLog = Object.assign({}, log, {
-              detail: log.detail || log.description || log.notes || log.message || ""
+              detail: getRawLogDetail(log),
+              timestamp: getRawLogTimestamp(log)
             });
             const parsed = parseResiLogEntry(normalizedLog, stageDetailObj.pic, stageDetailObj.note, activeStageObj);
             return { log: normalizedLog, parsed };
@@ -2299,7 +2368,7 @@
                       <span class="w-2.5 h-2.5 rounded-full ${isLatest ? 'bg-orange-400' : 'bg-slate-600'} absolute -left-[5.5px] top-1.5"></span>
                       <div class="bg-[#0d1017] border border-white/[0.07] rounded-xl p-3 text-xs space-y-1">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                          <span class="font-mono-code text-[11px] text-orange-300 font-semibold">${cleanTimestamp(log.timestamp)}</span>
+                          <span class="font-mono-code text-[11px] text-orange-300 font-semibold">${cleanTimestamp(getRawLogTimestamp(log))}</span>
                           <span class="text-[11px] text-slate-400">by <strong class="text-slate-200">${parsed.pic}</strong></span>
                         </div>
                         <ul class="space-y-0.5 text-[11px] text-slate-200">
@@ -2681,6 +2750,7 @@
         ticket.reportSurvey = cascaded[1];
         ticket.boq = cascaded[2];
         ticket.stageDetails = clearedSd;
+        if (!ticket.createdAt || ticket.createdAt === "-") ticket.createdAt = nowStr;
         ticket.lastUpdated = nowStr;
         recentStageOverrides[String(ticket.ticketId || ticketId).trim()] = {
           ts: Date.now(),
@@ -2690,6 +2760,7 @@
             reportSurvey: cascaded[1],
             boq: cascaded[2],
             stageDetails: clearedSd,
+            createdAt: ticket.createdAt,
             lastUpdated: nowStr
           }
         };
@@ -2728,6 +2799,7 @@
             staging: "Negotiation",
             materialEquip: "",
             forwardWo: "",
+            createdAt: nowStr,
             lastUpdated: nowStr,
             stageDetails: { staging: { pic: autoPic, note: "" } }
           };
@@ -2844,6 +2916,7 @@
         ticket.materialEquip = newMat;
         ticket.forwardWo = newFwd;
         ticket.stageDetails = clearedSd;
+        if (!ticket.createdAt || ticket.createdAt === "-") ticket.createdAt = nowStr;
         ticket.lastUpdated = nowStr;
         recentStageOverrides[String(ticket.ticketId || ticketId).trim()] = {
           ts: Date.now(),
@@ -2853,6 +2926,7 @@
             materialEquip: newMat,
             forwardWo: newFwd,
             stageDetails: clearedSd,
+            createdAt: ticket.createdAt,
             lastUpdated: nowStr
           }
         };
@@ -3013,6 +3087,7 @@
         item.description = "";
         item.pic = autoPic;
         item.stageDetails = clearedSd;
+        if (!item.createdAt || item.createdAt === "-") item.createdAt = nowStr;
         item.lastUpdated = nowStr;
 
         const noteEl = document.getElementById(`exp-note-${rowIndex}`);
@@ -3052,35 +3127,6 @@
       return list.find(item => String(item.ticketId).trim() === String(ticketId).trim()) || null;
     }
 
-    function findLatestStageTimestamp(stageDef, logsList, fallbackRecord) {
-      const candidates = [];
-      const list = Array.isArray(logsList) ? logsList : [];
-
-      list.forEach(log => {
-        const normalizedLog = Object.assign({}, log, {
-          detail: log.detail || log.description || log.notes || log.message || ""
-        });
-        const parsed = parseResiLogEntry(normalizedLog, "-", "", stageDef);
-        if (parsed.changes.length > 0) {
-          const dt = parseLocalTimestamp(normalizedLog.timestamp);
-          if (dt) {
-            candidates.push({ ms: dt.getTime(), raw: normalizedLog.timestamp });
-          }
-        }
-      });
-
-      if (candidates.length > 0) {
-        candidates.sort((a, b) => b.ms - a.ms);
-        return cleanTimestamp(candidates[0].raw);
-      }
-
-      if (stageDef.key === "staging" && fallbackRecord && fallbackRecord.createdAt && fallbackRecord.createdAt !== "-") {
-        return cleanTimestamp(fallbackRecord.createdAt);
-      }
-
-      return "No timestamp";
-    }
-
     function renderCustomerReceiptHeader(type, ticketId) {
       const banner = document.getElementById("customerReceiptBanner");
       const custNameEl = document.getElementById("receiptCustomerName");
@@ -3112,7 +3158,6 @@
         stripEl.className = "pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs";
         stripEl.innerHTML = SURVEY_STAGE_DEFS.map((st, idx) => {
           const val = normalizeStageVal(cascaded[idx]) || "Queued";
-          const stageTs = findLatestStageTimestamp(st, filteredHistoryLogs, record);
           const isDone = ["Done", "Deal", "Material Ready"].includes(val);
           const isCancel = ["Cancel", "Not Deal"].includes(val);
           const isProg = ["On Progress", "Pending", "Waiting Approval"].includes(val);
@@ -3128,7 +3173,6 @@
             <div class="rounded-xl border px-2.5 py-2 ${toneClass}">
               <p class="text-[10px] font-bold uppercase tracking-wider opacity-80 truncate">${idx + 1}. ${st.label}</p>
               <p class="text-[11px] font-extrabold mt-0.5 truncate">${val}</p>
-              <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${stageTs}</p>
             </div>
           `;
         }).join("");
@@ -3142,14 +3186,13 @@
         statusEl.innerHTML = getStatusPillHtml(overallSt);
 
         const milestones = [
-          { def: HANDOVER_STAGE_DEFS[0], label: "1. Staging", val: stgVal || "Negotiation" },
-          { def: HANDOVER_STAGE_DEFS[1], label: "2. Materials & Equip.", val: matVal },
-          { def: HANDOVER_STAGE_DEFS[2], label: "3. Forward WO", val: fwdVal }
+          { label: "1. Staging", val: stgVal || "Negotiation" },
+          { label: "2. Materials & Equip.", val: matVal },
+          { label: "3. Forward WO", val: fwdVal }
         ];
 
         stripEl.className = "pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs";
         stripEl.innerHTML = milestones.map(m => {
-          const stageTs = findLatestStageTimestamp(m.def, filteredHistoryLogs, record);
           const isDone = m.val === "Deal" || ["Done", "Material Ready"].includes(m.val);
           const isCancel = m.val === "Not Deal" || m.val === "Cancel";
           const isProg = m.val === "Negotiation" || ["On Progress", "Pending", "Waiting Approval"].includes(m.val);
@@ -3165,7 +3208,6 @@
             <div class="rounded-xl border px-2.5 py-2 ${toneClass}">
               <p class="text-[10px] font-bold uppercase tracking-wider opacity-80 truncate">${m.label}</p>
               <p class="text-[11px] font-extrabold mt-0.5 truncate">${m.val}</p>
-              <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${stageTs}</p>
             </div>
           `;
         }).join("");
@@ -3176,8 +3218,6 @@
           ? computeAutoMappingStatus(onetText, partnerText, record.status)
           : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Open");
         const effSt = getEffectiveMappingStatus(rawSt);
-        const onetTs = findLatestStageTimestamp(MAPPING_STAGE_DEFS[0], filteredHistoryLogs, record);
-        const partnerTs = findLatestStageTimestamp(MAPPING_STAGE_DEFS[1], filteredHistoryLogs, record);
 
         metaEl.innerText = `${ticketId} • Division: Business Integration (Onet → Partner Mapping)`;
         statusEl.innerHTML = getStatusPillHtml(effSt);
@@ -3187,12 +3227,10 @@
           <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-300">
             <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">1. Onet</p>
             <p class="text-xs font-extrabold mt-0.5">${onetText}</p>
-            <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${onetTs}</p>
           </div>
           <div class="rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-sky-300">
             <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">2. Partner</p>
             <p class="text-xs font-extrabold mt-0.5">${partnerText}</p>
-            <p class="text-[10px] font-mono-code opacity-80 mt-1 truncate">${partnerTs}</p>
           </div>
           <div class="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-slate-300">
             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Latest Remark</p>
@@ -3275,16 +3313,21 @@
         const tidParam = (selectedTicketId && selectedTicketId !== "ALL") ? `&ticketId=${encodeURIComponent(selectedTicketId)}` : "";
         const res = await fetch(`${API_URL}?action=getHistory&prefix=${encodeURIComponent(prefix)}${custParam}${tidParam}`);
         const data = await res.json();
-        const fetched = extractLogsArray(data);
+        const fetched = extractLogsArray(data).map(f => Object.assign({}, f, {
+          detail: getRawLogDetail(f),
+          timestamp: getRawLogTimestamp(f)
+        }));
         const cached = Array.isArray(cachedHistory[type]) ? cachedHistory[type] : [];
         if (fetched.length > 0) {
           const extraOptimistic = cached.filter(cItem => {
-            const cDet = String(cItem.detail || "").trim();
-            const cCust = String(cItem.customer || "").trim().toLowerCase();
-            return cItem._optimistic && !fetched.some(fItem =>
-              String(fItem.detail || "").trim() === cDet &&
-              String(fItem.customer || "").trim().toLowerCase() === cCust
-            );
+            if (!cItem._optimistic) return false;
+            const cDet = getRawLogDetail(cItem).toLowerCase();
+            const cTid = String(cItem.ticketId || cItem.workOrderId || "").trim().toLowerCase();
+            return !fetched.some(fItem => {
+              const fDet = getRawLogDetail(fItem).toLowerCase();
+              const fTid = String(fItem.ticketId || fItem.workOrderId || fItem.id || "").trim().toLowerCase();
+              return fTid === cTid && fDet === cDet;
+            });
           });
           allHistoryForType = [...extraOptimistic, ...fetched];
           cachedHistory[type] = allHistoryForType;
@@ -3335,8 +3378,8 @@
       const targetCustLower = targetRec && targetRec.customer ? String(targetRec.customer).trim().toLowerCase() : "";
 
       filteredHistoryLogs = allHistoryForType.filter(log => {
-        const logTid = String(log.ticketId || log.workOrderId || log.id || "").trim();
-        const logCustLower = String(log.customer || log.workOrderName || log.client || "").trim().toLowerCase();
+        const logTid = String(log.ticketId || log.workOrderId || log.id || log.ticket_id || "").trim();
+        const logCustLower = String(log.customer || log.workOrderName || log.client || log.customerName || "").trim().toLowerCase();
         const selIdTrim = String(selectedId || "").trim();
         const matchTicket = selectedId === "ALL"
           || (selIdTrim && logTid && logTid === selIdTrim)
@@ -3359,7 +3402,7 @@
     function extractStageBadgesFromLog(log, parsed, divisionType) {
       const defs = getStageDefsForType(divisionType);
       const rawText = [
-        String(log.detail || ""),
+        getRawLogDetail(log),
         ...(Array.isArray(parsed.changes) ? parsed.changes : []),
         String(parsed.note || "")
       ].join(" ");
@@ -3457,38 +3500,44 @@
           currentTicketStatus = getEffectiveMappingStatus(ticketRecord.status);
         }
       } else if (chronologicalLogs.length > 0) {
-        const sortedByTime = [...chronologicalLogs].sort((a, b) => {
-          const da = parseLocalTimestamp(a.timestamp);
-          const db = parseLocalTimestamp(b.timestamp);
-          return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
-        });
-        currentTicketStatus = String(sortedByTime[sortedByTime.length - 1].status || "Open").trim();
+        const lastLog = chronologicalLogs[chronologicalLogs.length - 1];
+        currentTicketStatus = String(lastLog.status || "Open").trim();
       }
 
-      const sortedLogs = [...(chronologicalLogs || [])].sort((a, b) => {
-        const da = parseLocalTimestamp(a.timestamp);
-        const db = parseLocalTimestamp(b.timestamp);
-        return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
-      });
-
+      // Top anchor: initial ticket status & earliest creation timestamp
       let openStatusLabel = "Open";
       if (divisionType === "Handover") {
         const stgNow = ticketRecord ? normalizeHandoverStaging(ticketRecord.staging) : "Negotiation";
-        const firstLogSt = sortedLogs.length > 0 ? String(sortedLogs[0].status || "").trim() : "";
-        openStatusLabel = (stgNow === "Deal" || firstLogSt === "Open") ? "Open" : "Pending";
+        const firstLogSt = chronologicalLogs.length > 0 ? String(chronologicalLogs[0].status || "").trim() : "";
+        if (stgNow === "Deal" || firstLogSt === "Open") {
+          openStatusLabel = "Open";
+        } else {
+          openStatusLabel = "Pending";
+        }
       }
 
-      const openCandidates = [];
-      if (ticketRecord && ticketRecord.createdAt && ticketRecord.createdAt !== "-") {
-        openCandidates.push(ticketRecord.createdAt);
+      const candidateTs = [];
+      const pushIfValid = (val) => {
+        if (val !== null && val !== undefined && String(val).trim() !== "" && String(val).trim() !== "-") {
+          candidateTs.push(val);
+        }
+      };
+
+      if (ticketRecord) {
+        pushIfValid(ticketRecord.createdAt);
+        pushIfValid(ticketRecord.created_at);
+        pushIfValid(ticketRecord.dateCreated);
+        pushIfValid(ticketRecord.timestamp);
+        pushIfValid(ticketRecord.lastUpdated);
+        pushIfValid(ticketRecord.updatedAt);
       }
-      if (sortedLogs.length > 0 && sortedLogs[0].timestamp) {
-        openCandidates.push(sortedLogs[0].timestamp);
+      if (chronologicalLogs.length > 0) {
+        pushIfValid(getRawLogTimestamp(chronologicalLogs[0]));
       }
 
-      let earliestTsRaw = openCandidates[0] || "-";
+      let earliestTsRaw = candidateTs[0] || "-";
       let earliestTimeMs = Infinity;
-      for (const ts of openCandidates) {
+      for (const ts of candidateTs) {
         const d = parseLocalTimestamp(ts);
         if (d && d.getTime() < earliestTimeMs) {
           earliestTimeMs = d.getTime();
@@ -3496,28 +3545,34 @@
         }
       }
 
+      // Bottom anchor: shown ONLY when ticket status is final (Closed / Done / Cancel / Outcover)
       const isFinalClosed = ["Closed", "Done", "Cancel", "Outcover"].includes(currentTicketStatus);
-      const closedStatusLabel = currentTicketStatus === "Done" ? "Closed" : currentTicketStatus;
+      let closedStatusLabel = currentTicketStatus === "Done" ? "Closed" : currentTicketStatus;
       let latestTsRaw = "-";
       if (isFinalClosed) {
         const endCandidates = [];
-        if (ticketRecord && ticketRecord.lastUpdated && ticketRecord.lastUpdated !== "-") {
-          endCandidates.push(ticketRecord.lastUpdated);
+        const pushEndIfValid = (val) => {
+          if (val !== null && val !== undefined && String(val).trim() !== "" && String(val).trim() !== "-") {
+            endCandidates.push(val);
+          }
+        };
+        if (chronologicalLogs.length > 0) {
+          pushEndIfValid(getRawLogTimestamp(chronologicalLogs[chronologicalLogs.length - 1]));
         }
-        if (sortedLogs.length > 0 && sortedLogs[sortedLogs.length - 1].timestamp) {
-          endCandidates.push(sortedLogs[sortedLogs.length - 1].timestamp);
+        if (ticketRecord) {
+          pushEndIfValid(ticketRecord.lastUpdated);
+          pushEndIfValid(ticketRecord.updatedAt);
+          pushEndIfValid(ticketRecord.timestamp);
+          pushEndIfValid(ticketRecord.createdAt);
         }
-
+        latestTsRaw = endCandidates[0] || "-";
         let latestTimeMs = -Infinity;
         for (const ts of endCandidates) {
           const d = parseLocalTimestamp(ts);
-          if (d && d.getTime() >= latestTimeMs) {
+          if (d && d.getTime() > latestTimeMs) {
             latestTimeMs = d.getTime();
             latestTsRaw = ts;
           }
-        }
-        if (!latestTsRaw || latestTsRaw === "-") {
-          latestTsRaw = endCandidates[0] || earliestTsRaw;
         }
       }
 
@@ -3622,7 +3677,7 @@
                     <span class="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/25 font-bold">[${stBadge}]</span>
                   `).join("")}
                 </div>
-                <span class="font-mono-code text-[11px] text-slate-400">${cleanTimestamp(item.timestamp)}</span>
+                <span class="font-mono-code text-[11px] text-slate-400">${cleanTimestamp(getRawLogTimestamp(item))}</span>
               </div>
 
               ${parsed.changes.length > 0 ? `
@@ -3750,7 +3805,7 @@
       }
 
       pillEntriesForPdf.forEach(({ log, parsed }, index) => {
-        const tsText = cleanTimestamp(log.timestamp);
+        const tsText = cleanTimestamp(getRawLogTimestamp(log));
         const changeLines = parsed.changes.length > 0
           ? parsed.changes.flatMap(ch => doc.splitTextToSize(`• ${ch}`, contentW - 12))
           : [];
