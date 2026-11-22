@@ -714,19 +714,19 @@
             <div>
               <label class="text-slate-400 font-semibold block mb-1">1. Survey</label>
               <select id="newSurveyProg" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-2.5 py-2 text-white">
-                <option value="">Not Yet</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
+                <option value="">Queued</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
               </select>
             </div>
             <div>
               <label class="text-slate-400 font-semibold block mb-1">2. Report Survey</label>
               <select id="newReportSurvey" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-2.5 py-2 text-white">
-                <option value="">Not Yet</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
+                <option value="">Queued</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
               </select>
             </div>
             <div>
               <label class="text-slate-400 font-semibold block mb-1">3. BOQ</label>
               <select id="newBoq" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-2.5 py-2 text-white">
-                <option value="">Not Yet</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
+                <option value="">Queued</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
               </select>
             </div>
           </div>
@@ -747,13 +747,13 @@
             <div>
               <label class="text-slate-400 font-semibold block mb-1">2. Materials &amp; Equip.</label>
               <select id="newHandoverMat" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-2.5 py-2 text-white">
-                <option value="">Not Yet</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Waiting Approval">Waiting Approval</option><option value="Cancel">Cancel</option>
+                <option value="">Queued</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Waiting Approval">Waiting Approval</option><option value="Cancel">Cancel</option>
               </select>
             </div>
             <div>
               <label class="text-slate-400 font-semibold block mb-1">3. Forward WO</label>
               <select id="newHandoverFwd" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-2.5 py-2 text-white">
-                <option value="">Not Yet</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
+                <option value="">Queued</option><option value="Done">Done</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Cancel">Cancel</option>
               </select>
             </div>
           </div>
@@ -771,13 +771,13 @@
             <div>
               <label class="text-slate-400 font-semibold block mb-1">1. Onet</label>
               <select id="newMappingOnet" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
-                <option value="">Not Yet</option><option value="On Progress">On Progress</option><option value="Need Survey">Need Survey</option><option value="Onet">Onet</option><option value="Onet*">Onet*</option><option value="Outcover">Outcover</option>
+                <option value="">Queued</option><option value="On Progress">On Progress</option><option value="Need Survey">Need Survey</option><option value="Onet">Onet</option><option value="Onet*">Onet*</option><option value="Outcover">Outcover</option>
               </select>
             </div>
             <div>
               <label class="text-slate-400 font-semibold block mb-1">2. Partner</label>
               <select id="newMappingPartner" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-3 py-2 text-white">
-                <option value="">Not Yet</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Done">Done</option><option value="Outcover">Outcover</option>
+                <option value="">Queued</option><option value="On Progress">On Progress</option><option value="Pending">Pending</option><option value="Done">Done</option><option value="Outcover">Outcover</option>
               </select>
             </div>
           </div>
@@ -883,20 +883,20 @@
     // =================================================
 
     const SURVEY_STAGE_DEFS = [
-      { key: "survey", label: "Survey", fullLabel: "Survey", bracketTags: ["survey"], opts: ["Not Yet", "Done", "On Progress", "Pending", "Cancel"] },
-      { key: "reportSurvey", label: "Report Survey", fullLabel: "Report Survey", bracketTags: ["report survey"], opts: ["Not Yet", "Done", "On Progress", "Pending", "Cancel"] },
-      { key: "boq", label: "BOQ", fullLabel: "BOQ", bracketTags: ["boq", "po procurement", "po"], opts: ["Not Yet", "Done", "On Progress", "Pending", "Cancel"] }
+      { key: "survey", label: "Survey", fullLabel: "Survey", bracketTags: ["survey"], opts: ["Queued", "Done", "On Progress", "Pending", "Cancel"] },
+      { key: "reportSurvey", label: "Report Survey", fullLabel: "Report Survey", bracketTags: ["report survey"], opts: ["Queued", "Done", "On Progress", "Pending", "Cancel"] },
+      { key: "boq", label: "BOQ", fullLabel: "BOQ", bracketTags: ["boq", "po procurement", "po"], opts: ["Queued", "Done", "On Progress", "Pending", "Cancel"] }
     ];
 
     const HANDOVER_STAGE_DEFS = [
       { key: "staging", label: "Staging", fullLabel: "Staging", bracketTags: ["staging"], opts: ["Negotiation", "Deal", "Not Deal"] },
-      { key: "materialEquip", label: "Materials & Equip.", fullLabel: "Preparing Network Materials and Equipment", bracketTags: ["preparing network materials and equipment", "material & equipment", "material", "procurement"], opts: ["Not Yet", "Done", "On Progress", "Pending", "Waiting Approval", "Cancel"] },
-      { key: "forwardWo", label: "Forward WO", fullLabel: "Forward WO Installation", bracketTags: ["forward wo installation", "forward wo", "installation wo"], opts: ["Not Yet", "Done", "On Progress", "Pending", "Cancel"] }
+      { key: "materialEquip", label: "Materials & Equip.", fullLabel: "Preparing Network Materials and Equipment", bracketTags: ["preparing network materials and equipment", "material & equipment", "material", "procurement"], opts: ["Queued", "Done", "On Progress", "Pending", "Waiting Approval", "Cancel"] },
+      { key: "forwardWo", label: "Forward WO", fullLabel: "Forward WO Installation", bracketTags: ["forward wo installation", "forward wo", "installation wo"], opts: ["Queued", "Done", "On Progress", "Pending", "Cancel"] }
     ];
 
     const MAPPING_STAGE_DEFS = [
-      { key: "onet", label: "Onet", fullLabel: "Onet Coverage Check", bracketTags: ["onet"], opts: ["Not Yet", "On Progress", "Need Survey", "Onet", "Onet*", "Outcover"] },
-      { key: "partner", label: "Partner", fullLabel: "Partner / Vendor Check", bracketTags: ["partner"], opts: ["Not Yet", "On Progress", "Pending", "Done", "Outcover"] }
+      { key: "onet", label: "Onet", fullLabel: "Onet Coverage Check", bracketTags: ["onet"], opts: ["Queued", "On Progress", "Need Survey", "Onet", "Onet*", "Outcover"] },
+      { key: "partner", label: "Partner", fullLabel: "Partner / Vendor Check", bracketTags: ["partner"], opts: ["Queued", "On Progress", "Pending", "Done", "Outcover"] }
     ];
 
     let appData = { survey: [], mapping: [], handover: [] };
@@ -1628,12 +1628,44 @@
 
     function normalizeStageVal(v) {
       const s = String(v || "").trim();
-      return (!s || s === "-" || s === "Not Yet" || s === "Waiting Process") ? "" : s;
+      return (!s || s === "-" || s === "Not Yet" || s === "Queued" || s === "Waiting Process") ? "" : s;
+    }
+
+    function normalizePillLogVal(v) {
+      const s = String(v || "").trim();
+      if (!s || s === "-" || s === "Not Yet" || s === "Waiting Process" || s.toLowerCase() === "queued") {
+        return "Queued";
+      }
+      return s;
+    }
+
+    function formatPillTransition(stageLabel, oldRaw, newRaw) {
+      const oldClean = normalizePillLogVal(oldRaw);
+      const newClean = normalizePillLogVal(newRaw);
+      return `${stageLabel}: [${oldClean}] -> [${newClean}]`;
+    }
+
+    function formatLegacyTransitionString(rawTransitionStr) {
+      const str = String(rawTransitionStr || "").trim();
+      const arrowMatch = str.match(/^([^:]+):\s*(.+?)\s*(?:→|->)\s*(.+)$/);
+      if (arrowMatch) {
+        const stg = arrowMatch[1].trim();
+        const fromVal = normalizePillLogVal(arrowMatch[2].replace(/^\[|\]$/g, "").trim());
+        const toVal = normalizePillLogVal(arrowMatch[3].replace(/^\[|\]$/g, "").trim());
+        return `${stg}: [${fromVal}] -> [${toVal}]`;
+      }
+      const singleMatch = str.match(/^([^:]+):\s*(.+)$/);
+      if (singleMatch) {
+        const stg = singleMatch[1].trim();
+        const val = normalizePillLogVal(singleMatch[2].replace(/^\[|\]$/g, "").trim());
+        return `${stg}: [${val}]`;
+      }
+      return str;
     }
 
     function normalizeHandoverStaging(v) {
       const s = String(v || "").trim();
-      if (!s || s === "-" || s === "Not Yet" || s === "Waiting Process") {
+      if (!s || s === "-" || s === "Not Yet" || s === "Queued" || s === "Waiting Process") {
         return "Negotiation";
       }
       return s;
@@ -1733,6 +1765,19 @@
       return targetNames.some(tag => lowerTitle === tag || lowerTitle.includes(tag));
     }
 
+    function isTicketLevelDetailText(text) {
+      const t = String(text || "").toLowerCase().trim();
+      return (
+        t.startsWith("ticket status:") ||
+        t.startsWith("work order status:") ||
+        t.startsWith("status:") ||
+        t.startsWith("update dicatat") ||
+        t.startsWith("work order created") ||
+        t.startsWith("ticket created") ||
+        t.startsWith("created work order")
+      );
+    }
+
     function parseResiLogEntry(log, fallbackPic, fallbackNote, stageOnlyObj = null) {
       const detail = String(log.detail || "").trim();
       const blocks = detail.split(";").map(s => s.trim()).filter(Boolean);
@@ -1783,20 +1828,23 @@
           if (stageOnlyObj && !belongsToStage(`${stageTitle} ${cleanMain}`)) continue;
           if (notePart && notePart !== "-" && !notes.includes(notePart)) notes.push(notePart);
           const transVal = transMatch[2].trim();
-          const pair = transVal.split("→").map(x => x.trim());
-          if (pair.length === 2 && pair[0] !== pair[1]) {
-            changes.push(`${stageTitle}: ${pair[0]} → ${pair[1]}`);
-          } else if (pair.length === 2 && pair[1] !== "Not Yet") {
-            changes.push(`${stageTitle}: ${pair[1]}`);
+          const pair = transVal.split(/→|->/).map(x => x.replace(/^\[|\]$/g, "").trim());
+          if (pair.length === 2) {
+            const p0 = normalizePillLogVal(pair[0]);
+            const p1 = normalizePillLogVal(pair[1]);
+            if (p0 !== p1) {
+              changes.push(`${stageTitle}: [${p0}] -> [${p1}]`);
+            } else if (p1 !== "Queued") {
+              changes.push(`${stageTitle}: [${p1}]`);
+            }
+          } else if (pair.length === 1 && pair[0]) {
+            const pSingle = normalizePillLogVal(pair[0]);
+            changes.push(`${stageTitle}: [${pSingle}]`);
           }
-        } else if (cleanMain.toLowerCase().startsWith("ticket status:")) {
-          if (stageOnlyObj) continue;
-          if (notePart && notePart !== "-" && !notes.includes(notePart)) notes.push(notePart);
-          const stVal = cleanMain.replace(/^ticket status:\s*/i, "").trim();
-          const pair = stVal.split("→").map(x => x.trim());
-          if (pair.length === 2 && pair[0] !== pair[1]) {
-            changes.unshift(`Work Order Status: ${pair[0]} → ${pair[1]}`);
-          }
+        } else if (isTicketLevelDetailText(cleanMain)) {
+          // Ticket status transitions are rendered exclusively in the top/bottom timeline anchors, never inside pill progress updates
+          if (!stageOnlyObj && notePart && notePart !== "-" && !notes.includes(notePart)) notes.push(notePart);
+          continue;
         } else if (/^\[mapping\]/i.test(cleanMain)) {
           const mapBody = cleanMain.replace(/^\[mapping\]\s*/i, "").trim();
           const pipeParts = mapBody.split("|").map(x => x.trim()).filter(Boolean);
@@ -1812,29 +1860,25 @@
               if (pName && pName !== "-") detectedPic = pName;
               continue;
             }
-            if (/^ticket status:/i.test(pp)) {
-              if (!stageOnlyObj) {
-                changes.push(pp);
-                matchedAny = true;
-              }
+            if (isTicketLevelDetailText(pp)) {
               continue;
             }
             if (!stageOnlyObj || belongsToStage(pp)) {
-              changes.push(pp);
+              changes.push(formatLegacyTransitionString(pp));
               matchedAny = true;
             }
           }
           if (matchedAny && notePart && notePart !== "-" && !notes.includes(notePart)) {
             notes.push(notePart);
           }
-        } else if (cleanMain && !cleanMain.toLowerCase().startsWith("update dicatat")) {
+        } else if (cleanMain) {
           if (stageOnlyObj) {
             const colonIdx = cleanMain.indexOf(":");
             const prefixTitle = colonIdx > 0 ? cleanMain.slice(0, colonIdx).trim() : cleanMain;
             if (!belongsToStage(prefixTitle) && !belongsToStage(cleanMain)) continue;
           }
           if (notePart && notePart !== "-" && !notes.includes(notePart)) notes.push(notePart);
-          changes.push(cleanMain);
+          changes.push(formatLegacyTransitionString(cleanMain));
         } else if (!stageOnlyObj && notePart && notePart !== "-" && !notes.includes(notePart)) {
           notes.push(notePart);
         }
@@ -1844,9 +1888,7 @@
         notes.push(fallbackNote);
       }
 
-      const finalNoteText = notes.length > 0
-        ? notes.join(" | ")
-        : (changes.length === 0 && detail && !stageOnlyObj ? detail : "-");
+      const finalNoteText = notes.length > 0 ? notes.join(" | ") : "-";
 
       return {
         pic: formatPicLabel(detectedPic || log.pic || log.updatedBy || fallbackPic || "-"),
@@ -1869,7 +1911,7 @@
       if (st === "Closed" || st === "Done" || st === "Onet" || st === "Deal" || st === "Material Ready") {
         return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/12 text-emerald-400 border border-emerald-500/25"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>${st}</span>`;
       }
-      if (st === "Cancel" || st === "Not Cover" || st === "Not Deal") {
+      if (st === "Cancel" || st === "Not Cover" || st === "Not Deal" || st === "Outcover") {
         return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-700/40 text-slate-400 border border-slate-600/30"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>${st}</span>`;
       }
       if (st === "Partner") {
@@ -2003,7 +2045,6 @@
       const crossSvg = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
 
       const canEdit = Boolean(currentUser);
-      const isAdmin = currentUser && currentUser.role === "Admin";
       const autoPicName = currentUser ? resolveCurrentPicName() : "";
 
       const isExpanded = Boolean(expandedRows[t.ticketId]);
@@ -2155,7 +2196,7 @@
         const stageDetailObj = (t.stageDetails && t.stageDetails[activeStageKey]) || fallbackMapDetail;
         const headerDisplayStatus = activeStageObj.key === "staging"
           ? (currentStageVal || "Negotiation")
-          : (currentStageVal || "Not Yet");
+          : (currentStageVal || "Queued");
 
         const historyCacheForType = cachedHistory[pipelineType] || [];
         const custLower = String(t.customer || "").trim().toLowerCase();
@@ -2178,21 +2219,7 @@
             const parsed = parseResiLogEntry(normalizedLog, stageDetailObj.pic, stageDetailObj.note, activeStageObj);
             return { log: normalizedLog, parsed };
           })
-          .filter(entry => {
-            if (entry.parsed.changes.length > 0) return true;
-            const rawD = String(entry.log.detail || "").toLowerCase();
-            if (activeStageObj.key === "survey") {
-              const noRep = rawD.replace(/report\s*survey/g, "");
-              return /\bsurvey\b/.test(noRep);
-            }
-            if (activeStageObj.key === "reportSurvey") {
-              return /report\s*survey/.test(rawD);
-            }
-            if (activeStageObj.key === "boq") {
-              return /\bboq\b|\bpo\b/.test(rawD);
-            }
-            return rawD.includes(activeStageObj.label.toLowerCase());
-          });
+          .filter(entry => entry.parsed.changes.length > 0);
 
         const helperHintHtml = activeStageObj.key === "staging"
           ? `<p class="text-[10.5px] text-slate-400">Solved Survey → <strong class="text-amber-300">Negotiation</strong> (<strong class="text-violet-300">Pending</strong>) • <strong class="text-emerald-400">Deal</strong> = <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = <strong class="text-emerald-400">Closed</strong>.</p>`
@@ -2207,8 +2234,6 @@
             : `saveExpandedSurveyStage(${t.rowIndex}, '${t.ticketId}', '${activeStageKey}', this)`;
 
         const statusControlHtml = `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`;
-
-        const stageOnChangeAttr = "";
 
         const updateMenuHtml = canEdit ? `
           <div class="bg-[#0d1017] border border-orange-500/30 rounded-2xl p-4 space-y-3">
@@ -2225,9 +2250,9 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs items-end">
               <div>
                 <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">${activeStageObj.label} State</label>
-                <select id="exp-stageval-${t.rowIndex}" ${stageOnChangeAttr} class="w-full bg-[#151923] border border-white/15 rounded-xl px-3 py-2 font-bold text-white focus:border-orange-500 focus:outline-none">
+                <select id="exp-stageval-${t.rowIndex}" class="w-full bg-[#151923] border border-white/15 rounded-xl px-3 py-2 font-bold text-white focus:border-orange-500 focus:outline-none">
                   ${activeStageObj.opts.map(o => {
-                    const v = o === "Not Yet" ? "" : o;
+                    const v = o === "Queued" ? "" : o;
                     return `<option value="${v}" ${currentStageVal === v ? "selected" : ""}>${o}</option>`;
                   }).join("")}
                 </select>
@@ -2649,11 +2674,12 @@
         const noteEl = document.getElementById(`exp-note-${rowIndex}`);
         if (noteEl) noteEl.value = "";
 
+        // Option B: 1 stage pill transition per entry using [Queued] as default initial pill state
         const stageLabelMap = { survey: "Survey", reportSurvey: "Report Survey", boq: "BOQ" };
         const stgLabel = stageLabelMap[stageKey] || stageKey;
-        const oldValDisp = normalizeStageVal(prevStages[stageKey === "survey" ? 0 : stageKey === "reportSurvey" ? 1 : 2]) || "Not Yet";
-        const newValDisp = normalizeStageVal(updatedStageVal) || "Not Yet";
-        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldValDisp} → ${newValDisp} | PIC: ${autoPic}${updatedNote ? ` | Ket: ${updatedNote}` : ""}`;
+        const oldRawVal = prevStages[stageKey === "survey" ? 0 : stageKey === "reportSurvey" ? 1 : 2];
+        const transitionText = formatPillTransition(stgLabel, oldRawVal, updatedStageVal);
+        const logDetail = `[${stgLabel}] ${transitionText} | PIC: ${autoPic}${updatedNote ? ` | Ket: ${updatedNote}` : ""}`;
         applyOptimisticHistoryEntry("Survey", ticketId, ticket.customer, autoSyncedStatus, "UPDATE", logDetail, autoPic);
 
         let handoverSyncOk = true;
@@ -2797,19 +2823,13 @@
         const noteEl = document.getElementById(`exp-note-${rowIndex}`);
         if (noteEl) noteEl.value = "";
 
+        // Option B: 1 stage pill transition per entry
         const hndLabelMap = { staging: "Staging", materialEquip: "Materials & Equip.", forwardWo: "Forward WO" };
         const stgLabel = hndLabelMap[stageKey] || stageKey;
-        const oldDisp = stageKey === "staging"
-          ? (prevStaging || "Negotiation")
-          : stageKey === "materialEquip"
-            ? (prevMat || "Not Yet")
-            : (prevFwd || "Not Yet");
-        const newDisp = stageKey === "staging"
-          ? (newStaging || "Negotiation")
-          : stageKey === "materialEquip"
-            ? (newMat || "Not Yet")
-            : (newFwd || "Not Yet");
-        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldDisp} → ${newDisp} | PIC: ${autoPic}${updatedNote ? ` | Ket: ${updatedNote}` : ""}`;
+        const oldRaw = stageKey === "staging" ? prevStaging : stageKey === "materialEquip" ? prevMat : prevFwd;
+        const newRaw = stageKey === "staging" ? newStaging : stageKey === "materialEquip" ? newMat : newFwd;
+        const transitionText = formatPillTransition(stgLabel, oldRaw, newRaw);
+        const logDetail = `[${stgLabel}] ${transitionText} | PIC: ${autoPic}${updatedNote ? ` | Ket: ${updatedNote}` : ""}`;
         applyOptimisticHistoryEntry("Handover", ticketId, ticket.customer, computedStatus, "UPDATE", logDetail, autoPic);
 
         btn.innerText = "✓ Saved";
@@ -2958,14 +2978,12 @@
         const noteEl = document.getElementById(`exp-note-${rowIndex}`);
         if (noteEl) noteEl.value = "";
 
+        // Option B: Log ONLY the stage pill transition (ticket status is separated into top/bottom timeline anchors)
         const stageLabel = stageKey === "partner" ? "Partner" : "Onet";
-        const oldDisp = stageKey === "partner" ? (prevPartner || "Not Yet") : (prevOnet || "Not Yet");
-        const newDisp = stageKey === "partner" ? (newPartner || "Not Yet") : (newOnet || "Not Yet");
-        let logDetail = `[${stageLabel}] ${stageLabel}: ${oldDisp} → ${newDisp}`;
-        if (prevStatus !== newStatus) {
-          logDetail += `; Ticket Status: ${prevStatus} → ${newStatus}`;
-        }
-        logDetail += ` | PIC: ${autoPic}`;
+        const oldRaw = stageKey === "partner" ? prevPartner : prevOnet;
+        const newRaw = stageKey === "partner" ? newPartner : newOnet;
+        const transitionText = formatPillTransition(stageLabel, oldRaw, newRaw);
+        let logDetail = `[${stageLabel}] ${transitionText} | PIC: ${autoPic}`;
         if (updatedNote) logDetail += ` | Ket: ${updatedNote}`;
         applyOptimisticHistoryEntry("Mapping", ticketId, item.customer, newStatus, "UPDATE", logDetail, autoPic);
 
@@ -3024,7 +3042,7 @@
 
         stripEl.className = "pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs";
         stripEl.innerHTML = SURVEY_STAGE_DEFS.map((st, idx) => {
-          const val = normalizeStageVal(cascaded[idx]) || "Not Yet";
+          const val = normalizeStageVal(cascaded[idx]) || "Queued";
           const isDone = ["Done", "Deal", "Material Ready"].includes(val);
           const isCancel = ["Cancel", "Not Deal"].includes(val);
           const isProg = ["On Progress", "Pending", "Waiting Approval"].includes(val);
@@ -3045,8 +3063,8 @@
         }).join("");
       } else if (type === "Handover") {
         const stgVal = record ? normalizeHandoverStaging(record.staging) : "Negotiation";
-        const matVal = record ? (normalizeStageVal(record.materialEquip) || "Not Yet") : "Not Yet";
-        const fwdVal = record ? (normalizeStageVal(record.forwardWo) || "Not Yet") : "Not Yet";
+        const matVal = record ? (normalizeStageVal(record.materialEquip) || "Queued") : "Queued";
+        const fwdVal = record ? (normalizeStageVal(record.forwardWo) || "Queued") : "Queued";
         const overallSt = record ? computeHandoverStatus(stgVal, matVal, fwdVal, record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Pending");
 
         metaEl.innerText = `${ticketId} • Division: Business Integration (Handover Pipeline)`;
@@ -3079,8 +3097,8 @@
           `;
         }).join("");
       } else {
-        const onetText = (record && normalizeStageVal(record.onet)) || "Not Yet";
-        const partnerText = (record && normalizeMappingPartnerVal(record.partner)) || "Not Yet";
+        const onetText = (record && normalizeStageVal(record.onet)) || "Queued";
+        const partnerText = (record && normalizeMappingPartnerVal(record.partner)) || "Queued";
         const rawSt = record
           ? computeAutoMappingStatus(onetText, partnerText, record.status)
           : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Open");
@@ -3183,7 +3201,6 @@
         const fetched = extractLogsArray(data);
         const cached = Array.isArray(cachedHistory[type]) ? cachedHistory[type] : [];
         if (fetched.length > 0) {
-          // Merge any brand-new optimistic entries from cachedHistory that aren't in fetched yet
           const extraOptimistic = cached.filter(cItem => {
             const cDet = String(cItem.detail || "").trim();
             const cCust = String(cItem.customer || "").trim().toLowerCase();
@@ -3311,8 +3328,9 @@
         const bmLow = bm.toLowerCase();
         if (bmLow === "mapping" || bmLow === "update" || bmLow === "updated" || bmLow === "create" || bmLow === "created") continue;
         const foundDef = findDefByText(bm);
-        const labelToUse = foundDef ? foundDef.label : bm;
-        if (!matched.includes(labelToUse)) matched.push(labelToUse);
+        if (foundDef && !matched.includes(foundDef.label)) {
+          matched.push(foundDef.label);
+        }
       }
 
       if (matched.length === 0) {
@@ -3343,57 +3361,169 @@
       return matched;
     }
 
-    function resolveReceiptLogStatus(logItem, ticketRecord) {
-      const rawSt = String((logItem && logItem.status) || "").trim();
-      const recordSt = ticketRecord
-        ? (historyTypeActive === "Survey"
-            ? computeAutoSurveyStatus(
-                cascadeStages([ticketRecord.survey, ticketRecord.reportSurvey, ticketRecord.boq], ticketRecord.status),
-                ticketRecord.status
-              )
-            : historyTypeActive === "Handover"
-              ? computeHandoverStatus(
-                  normalizeHandoverStaging(ticketRecord.staging),
-                  ticketRecord.materialEquip,
-                  ticketRecord.forwardWo,
-                  ticketRecord.status
-                )
-              : getEffectiveMappingStatus(ticketRecord.status))
-        : "";
-
-      if (historySingleCustomerMode && (recordSt === "Closed" || recordSt === "Done")) {
-        return "Done";
+    function computeTimelineAnchors(divisionType, ticketRecord, chronologicalLogs) {
+      let currentTicketStatus = "Open";
+      if (ticketRecord) {
+        if (divisionType === "Survey") {
+          currentTicketStatus = computeAutoSurveyStatus(
+            cascadeStages([ticketRecord.survey, ticketRecord.reportSurvey, ticketRecord.boq], ticketRecord.status),
+            ticketRecord.status
+          );
+        } else if (divisionType === "Handover") {
+          currentTicketStatus = computeHandoverStatus(
+            normalizeHandoverStaging(ticketRecord.staging),
+            ticketRecord.materialEquip,
+            ticketRecord.forwardWo,
+            ticketRecord.status
+          );
+        } else {
+          currentTicketStatus = getEffectiveMappingStatus(ticketRecord.status);
+        }
+      } else if (chronologicalLogs.length > 0) {
+        const lastLog = chronologicalLogs[chronologicalLogs.length - 1];
+        currentTicketStatus = String(lastLog.status || "Open").trim();
       }
-      return rawSt || recordSt || "Open";
+
+      // Top anchor: initial ticket status & earliest creation timestamp
+      let openStatusLabel = "Open";
+      if (divisionType === "Handover") {
+        const stgNow = ticketRecord ? normalizeHandoverStaging(ticketRecord.staging) : "Negotiation";
+        const firstLogSt = chronologicalLogs.length > 0 ? String(chronologicalLogs[0].status || "").trim() : "";
+        if (stgNow === "Deal" || firstLogSt === "Open") {
+          openStatusLabel = "Open";
+        } else {
+          openStatusLabel = "Pending";
+        }
+      }
+
+      const candidateTs = [];
+      if (ticketRecord && ticketRecord.createdAt && ticketRecord.createdAt !== "-") {
+        candidateTs.push(ticketRecord.createdAt);
+      }
+      if (chronologicalLogs.length > 0 && chronologicalLogs[0].timestamp) {
+        candidateTs.push(chronologicalLogs[0].timestamp);
+      }
+      if (ticketRecord && ticketRecord.lastUpdated && ticketRecord.lastUpdated !== "-") {
+        candidateTs.push(ticketRecord.lastUpdated);
+      }
+
+      let earliestTsRaw = candidateTs[0] || "-";
+      let earliestTimeMs = Infinity;
+      for (const ts of candidateTs) {
+        const d = parseLocalTimestamp(ts);
+        if (d && d.getTime() < earliestTimeMs) {
+          earliestTimeMs = d.getTime();
+          earliestTsRaw = ts;
+        }
+      }
+
+      // Bottom anchor: shown ONLY when ticket status is final (Closed / Done / Cancel / Outcover)
+      const isFinalClosed = ["Closed", "Done", "Cancel", "Outcover"].includes(currentTicketStatus);
+      let closedStatusLabel = currentTicketStatus === "Done" ? "Closed" : currentTicketStatus;
+      let latestTsRaw = "-";
+      if (isFinalClosed) {
+        const endCandidates = [];
+        if (chronologicalLogs.length > 0 && chronologicalLogs[chronologicalLogs.length - 1].timestamp) {
+          endCandidates.push(chronologicalLogs[chronologicalLogs.length - 1].timestamp);
+        }
+        if (ticketRecord && ticketRecord.lastUpdated && ticketRecord.lastUpdated !== "-") {
+          endCandidates.push(ticketRecord.lastUpdated);
+        }
+        latestTsRaw = endCandidates[0] || "-";
+        let latestTimeMs = -Infinity;
+        for (const ts of endCandidates) {
+          const d = parseLocalTimestamp(ts);
+          if (d && d.getTime() > latestTimeMs) {
+            latestTimeMs = d.getTime();
+            latestTsRaw = ts;
+          }
+        }
+      }
+
+      return {
+        openStatus: openStatusLabel,
+        openTimestamp: cleanTimestamp(earliestTsRaw),
+        isFinalClosed,
+        closedStatus: closedStatusLabel,
+        closedTimestamp: isFinalClosed ? cleanTimestamp(latestTsRaw) : ""
+      };
     }
 
     function renderHistoryTimeline() {
       const container = document.getElementById("historyListContainer");
-      if (filteredHistoryLogs.length === 0) {
-        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs font-semibold">No activity log entries recorded yet.</div>`;
-        return;
-      }
-
       const stageDefs = getStageDefsForType(historyTypeActive);
       const stageObj = historyStageFilterKey ? stageDefs.find(s => s.key === historyStageFilterKey) : null;
       const receiptRecord = historySingleCustomerMode
         ? findWorkOrderRecord(historyTypeActive, historyLockedTicketId)
         : null;
 
+      if (filteredHistoryLogs.length === 0 && !historySingleCustomerMode) {
+        container.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs font-semibold">No activity log entries recorded yet.</div>`;
+        return;
+      }
+
+      const chronologicalLogs = [...filteredHistoryLogs].reverse();
       const logsToRender = historySingleCustomerMode
-        ? [...filteredHistoryLogs].reverse()
+        ? chronologicalLogs
         : filteredHistoryLogs;
 
-      container.innerHTML = logsToRender.map((item, idx) => {
+      // Filter out pure ticket-creation/status-only entries so middle cards show ONLY pill status transitions
+      const pillEntryCards = [];
+      logsToRender.forEach((item, rawIdx) => {
         const parsed = parseResiLogEntry(item, "-", "", stageObj);
-        const isLast = idx === logsToRender.length - 1;
-        const stepNumber = historySingleCustomerMode ? (idx + 1) : (logsToRender.length - idx);
-        const isHighlightNode = historySingleCustomerMode ? isLast : (idx === 0);
-        const badgeStatus = resolveReceiptLogStatus(item, receiptRecord);
+        const stepNumber = historySingleCustomerMode ? (rawIdx + 1) : (logsToRender.length - rawIdx);
+        if (parsed.changes.length === 0 && historySingleCustomerMode) {
+          return;
+        }
+        pillEntryCards.push({ item, parsed, stepNumber });
+      });
+
+      const anchors = historySingleCustomerMode
+        ? computeTimelineAnchors(historyTypeActive, receiptRecord, chronologicalLogs)
+        : null;
+
+      const topAnchorHtml = anchors ? `
+        <div class="relative pl-7 pb-4">
+          <span class="w-[2px] border-l-2 border-dashed border-white/15 absolute left-[9px] top-5 bottom-0"></span>
+          <span class="w-4 h-4 rounded-full bg-rose-500/20 border-2 border-rose-400 flex items-center justify-center absolute left-0.5 top-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+          </span>
+          <div class="bg-[#0d1017] border border-dashed border-white/15 rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              ${getStatusPillHtml(anchors.openStatus)}
+              <span class="text-[11px] font-semibold text-slate-300">Work Order Created</span>
+            </div>
+            <span class="font-mono-code text-[11px] text-slate-400">${anchors.openTimestamp}</span>
+          </div>
+        </div>
+      ` : "";
+
+      const bottomAnchorHtml = (anchors && anchors.isFinalClosed) ? `
+        <div class="relative pl-7 pb-1">
+          <span class="w-4 h-4 rounded-full bg-emerald-500/25 border-2 border-emerald-400 flex items-center justify-center absolute left-0.5 top-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          </span>
+          <div class="bg-[#0d1017] border border-dashed border-emerald-500/35 rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              ${getStatusPillHtml(anchors.closedStatus)}
+              <span class="text-[11px] font-semibold text-slate-200">Work Order Completed</span>
+            </div>
+            <span class="font-mono-code text-[11px] text-emerald-300 font-semibold">${anchors.closedTimestamp}</span>
+          </div>
+        </div>
+      ` : "";
+
+      const cardsHtml = pillEntryCards.map(({ item, parsed }, idx) => {
+        const displayStepNum = historySingleCustomerMode ? (idx + 1) : (pillEntryCards.length - idx);
+        const isLastCard = idx === pillEntryCards.length - 1;
+        const hasLineBelow = historySingleCustomerMode ? (!isLastCard || (anchors && anchors.isFinalClosed)) : !isLastCard;
+        const isHighlightNode = historySingleCustomerMode
+          ? (isLastCard && !(anchors && anchors.isFinalClosed))
+          : (idx === 0);
 
         return `
-          <div class="relative pl-7 pb-4 ${isLast ? 'pb-1' : ''}">
-            ${!isLast ? `<span class="w-[2px] border-l-2 border-dashed border-white/15 absolute left-[9px] top-5 bottom-0"></span>` : ""}
+          <div class="relative pl-7 ${hasLineBelow ? 'pb-4' : 'pb-1'}">
+            ${hasLineBelow ? `<span class="w-[2px] border-l-2 border-dashed border-white/15 absolute left-[9px] top-5 bottom-0"></span>` : ""}
             <span class="w-4 h-4 rounded-full ${isHighlightNode ? 'bg-orange-500/25 border-2 border-orange-400' : 'bg-white/[0.06] border-2 border-slate-500'} flex items-center justify-center absolute left-0.5 top-1">
               <span class="w-1.5 h-1.5 rounded-full ${isHighlightNode ? 'bg-orange-400' : 'bg-slate-400'}"></span>
             </span>
@@ -3401,12 +3531,12 @@
             <div class="bg-[#0d1017] border ${historySingleCustomerMode ? 'border-dashed border-white/15' : 'border-white/[0.08]'} rounded-2xl p-4 text-xs space-y-2.5">
               <div class="flex flex-wrap justify-between items-center gap-2 pb-2 border-b ${historySingleCustomerMode ? 'border-dashed border-white/15' : 'border-white/[0.08]'}">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-mono-code text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-slate-300 font-bold">#${stepNumber}</span>
+                  <span class="font-mono-code text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-slate-300 font-bold">#${displayStepNum}</span>
                   ${!historySingleCustomerMode ? `
                     <span class="font-mono-code text-[11px] text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 rounded-md font-bold">${item.ticketId}</span>
                     <span class="font-bold text-white text-sm">${item.customer || "-"}</span>
                   ` : ""}
-                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-300 border border-orange-500/25 font-bold uppercase">[${item.action || "Updated"}]</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-300 border border-orange-500/25 font-bold uppercase">[${item.action || "UPDATE"}]</span>
                   ${extractStageBadgesFromLog(item, parsed, historyTypeActive).map(stBadge => `
                     <span class="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/25 font-bold">[${stBadge}]</span>
                   `).join("")}
@@ -3418,7 +3548,7 @@
                 <div class="bg-white/[0.02] border border-white/[0.06] rounded-xl px-3.5 py-2.5 space-y-1">
                   <p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">${stageObj ? `Changes • ${stageObj.label}` : "Progress Updates"}</p>
                   <ul class="space-y-1 text-xs text-slate-200">
-                    ${parsed.changes.map(c => `<li class="flex items-start gap-1.5"><span class="text-orange-400 font-bold">›</span><span>${c}</span></li>`).join("")}
+                    ${parsed.changes.map(c => `<li class="flex items-start gap-1.5"><span class="text-orange-400 font-bold">›</span><span class="font-mono-code text-[11.5px]">${c}</span></li>`).join("")}
                   </ul>
                 </div>
               ` : ""}
@@ -3430,16 +3560,26 @@
 
               <div class="flex flex-wrap justify-between items-center gap-2 text-[11px] text-slate-400 pt-1">
                 <span>PIC: <strong class="text-amber-300">${parsed.pic}</strong></span>
-                ${!stageObj && (item.status || historySingleCustomerMode) ? getStatusPillHtml(badgeStatus) : ""}
               </div>
             </div>
           </div>
         `;
       }).join("");
+
+      const emptyMiddleHint = (historySingleCustomerMode && pillEntryCards.length === 0)
+        ? `<div class="relative pl-7 pb-4">
+            ${(anchors && anchors.isFinalClosed) ? `<span class="w-[2px] border-l-2 border-dashed border-white/15 absolute left-[9px] top-3 bottom-0"></span>` : ""}
+            <div class="bg-[#0d1017] border border-dashed border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-slate-400">
+              No stage pill transitions recorded yet.
+            </div>
+          </div>`
+        : "";
+
+      container.innerHTML = `${topAnchorHtml}${cardsHtml || emptyMiddleHint}${bottomAnchorHtml}`;
     }
 
     function exportHistoryPDF() {
-      if (filteredHistoryLogs.length === 0) {
+      if (filteredHistoryLogs.length === 0 && !historySingleCustomerMode) {
         return alert("No activity log data available to export to PDF.");
       }
 
@@ -3459,16 +3599,25 @@
 
       let targetLabel = "";
       let logsForPdf = filteredHistoryLogs;
+      let receiptRecord = null;
 
       if (historySingleCustomerMode && historyLockedTicketId) {
-        const rec = findWorkOrderRecord(historyTypeActive, historyLockedTicketId);
-        const custName = (rec && rec.customer) || (filteredHistoryLogs[0] && filteredHistoryLogs[0].customer) || "-";
+        receiptRecord = findWorkOrderRecord(historyTypeActive, historyLockedTicketId);
+        const custName = (receiptRecord && receiptRecord.customer) || (filteredHistoryLogs[0] && filteredHistoryLogs[0].customer) || "-";
         targetLabel = `${historyLockedTicketId} - ${custName}`;
         logsForPdf = [...filteredHistoryLogs].reverse();
       } else {
         const filterSelect = document.getElementById("historyCustomerFilter");
         targetLabel = filterSelect.options[filterSelect.selectedIndex].text;
       }
+
+      const pillEntriesForPdf = logsForPdf
+        .map(log => ({ log, parsed: parseResiLogEntry(log, "-", "", stageObj) }))
+        .filter(({ parsed }) => !historySingleCustomerMode || parsed.changes.length > 0);
+
+      const anchors = historySingleCustomerMode
+        ? computeTimelineAnchors(historyTypeActive, receiptRecord, logsForPdf)
+        : null;
 
       let y = 0;
 
@@ -3490,7 +3639,7 @@
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8.5);
         doc.text(`${historySingleCustomerMode ? "Customer / WO" : "Filter"}: ${targetLabel}`, marginX, 18);
-        doc.text(`Printed: ${printedAt}  |  Total Entries: ${logsForPdf.length}`, marginX, 24);
+        doc.text(`Printed: ${printedAt}  |  Stage Updates: ${pillEntriesForPdf.length}`, marginX, 24);
         y = 35;
       }
 
@@ -3503,10 +3652,24 @@
 
       drawHeaderBanner();
 
-      logsForPdf.forEach((log, index) => {
-        const parsed = parseResiLogEntry(log, "-", "", stageObj);
+      // Top Anchor in PDF ([Open] date & time)
+      if (anchors) {
+        ensureSpace(14);
+        doc.setDrawColor(225, 29, 72);
+        doc.setFillColor(255, 241, 242);
+        doc.roundedRect(marginX, y, contentW, 10, 2, 2, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(190, 18, 60);
+        doc.text(`[${anchors.openStatus}]  Work Order Created`, marginX + 4, y + 6.3);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        doc.text(anchors.openTimestamp, pageW - marginX - 4, y + 6.3, { align: "right" });
+        y += 13;
+      }
+
+      pillEntriesForPdf.forEach(({ log, parsed }, index) => {
         const tsText = cleanTimestamp(log.timestamp);
-        const statusText = stageObj ? "" : (log.status || "-");
         const changeLines = parsed.changes.length > 0
           ? parsed.changes.flatMap(ch => doc.splitTextToSize(`• ${ch}`, contentW - 12))
           : [];
@@ -3530,15 +3693,9 @@
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9.5);
         doc.setTextColor(24, 24, 27);
-        const titleStr = `#${index + 1}  ${log.ticketId} — ${log.customer || "-"}`;
-        doc.text(doc.splitTextToSize(titleStr, contentW - 56)[0], marginX + 5, cy);
-
-        if (statusText) {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(8.5);
-          doc.setTextColor(194, 65, 12);
-          doc.text(statusText, pageW - marginX - 4, cy, { align: "right" });
-        }
+        const stageTags = extractStageBadgesFromLog(log, parsed, historyTypeActive).map(b => `[${b}]`).join(" ");
+        const titleStr = `#${index + 1}  ${log.ticketId} — ${log.customer || "-"} ${stageTags}`;
+        doc.text(doc.splitTextToSize(titleStr, contentW - 10)[0], marginX + 5, cy);
 
         cy += 4.5;
         doc.setFont("helvetica", "normal");
@@ -3586,6 +3743,22 @@
 
         y += cardH + 2;
       });
+
+      // Bottom Anchor in PDF ([Closed] date & time — shown only when final)
+      if (anchors && anchors.isFinalClosed) {
+        ensureSpace(14);
+        doc.setDrawColor(16, 185, 129);
+        doc.setFillColor(236, 253, 245);
+        doc.roundedRect(marginX, y, contentW, 10, 2, 2, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(4, 120, 87);
+        doc.text(`[${anchors.closedStatus}]  Work Order Completed`, marginX + 4, y + 6.3);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(4, 120, 87);
+        doc.text(anchors.closedTimestamp, pageW - marginX - 4, y + 6.3, { align: "right" });
+        y += 12;
+      }
 
       const totalPages = doc.getNumberOfPages();
       for (let p = 1; p <= totalPages; p++) {
@@ -3701,6 +3874,7 @@
             survey: payload.survey,
             reportSurvey: payload.reportSurvey,
             boq: payload.boq,
+            createdAt: nowStr,
             lastUpdated: nowStr,
             stageDetails: {}
           });
@@ -3715,6 +3889,7 @@
             staging: payload.staging,
             materialEquip: payload.materialEquip,
             forwardWo: payload.forwardWo,
+            createdAt: nowStr,
             lastUpdated: nowStr,
             stageDetails: {}
           });
@@ -3732,6 +3907,7 @@
             description: payload.description,
             pic: payload.pic,
             stageDetails: payload.stageDetails,
+            createdAt: nowStr,
             lastUpdated: nowStr
           });
         }
