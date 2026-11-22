@@ -730,12 +730,12 @@
 
         <!-- Handover Initial Stages (3 Stages) -->
         <div id="newHandoverFields" class="space-y-3 hidden bg-white/[0.02] p-3.5 rounded-2xl border border-white/[0.07]">
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Handover Stages (Empty Staging = Negotiation; Deal = Auto Open)</p>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Handover Stages (Solved Survey → Negotiation → Pending)</p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div>
               <label class="text-slate-400 font-semibold block mb-1">1. Staging</label>
               <select id="newHandoverStaging" class="w-full bg-[#0d1017] border border-white/15 rounded-xl px-2.5 py-2 text-white">
-                <option value="" selected>Negotiation (Blank)</option>
+                <option value="Negotiation" selected>Negotiation</option>
                 <option value="Deal">Deal</option>
                 <option value="Not Deal">Not Deal</option>
               </select>
@@ -1341,9 +1341,8 @@
       renderWeeklyPanel();
     }
 
-    // Map Negotiation to "On Progress" for KPI bucket consistency while preserving exact status label on ticket
     function mapToKpiBucket(statusVal) {
-      if (statusVal === "Negotiation") return "On Progress";
+      if (statusVal === "Negotiation") return "Pending";
       return statusVal;
     }
 
@@ -1408,8 +1407,8 @@
       const labelMap = {
         ALL: "All Weekly Work Orders",
         Open: "Open Work Orders",
-        "On Progress": "On Progress / Negotiation Work Orders",
-        Pending: "Pending Work Orders",
+        "On Progress": "On Progress Work Orders",
+        Pending: "Pending / Negotiation Work Orders",
         Cancel: "Cancelled Work Orders",
         Closed: "Completed / Closed Work Orders"
       };
@@ -1476,7 +1475,6 @@
     function renderFilterPills() {
       const pills = [
         { key: "NEED_ATTENTION", label: "All Active" },
-        { key: "Negotiation", label: "Negotiation" },
         { key: "Open", label: "Open" },
         { key: "On Progress", label: "On Progress" },
         { key: "Pending", label: "Pending" }
@@ -1559,7 +1557,7 @@
     function formatPicLabel(rawPic) {
       const p = String(rawPic || "").trim();
       if (!p || p === "-") return "-";
-      return p.replace(/(\([^)]+\))\s* $/i, "$1");
+      return p.replace(/(\([^)]+\))\s*$/i, "$1").trim();
     }
 
     function normalizeStageVal(v) {
@@ -1569,8 +1567,10 @@
 
     function normalizeHandoverStaging(v) {
       const s = String(v || "").trim();
-      if (s === "Deal" || s === "Not Deal") return s;
-      return ""; // Blank = Negotiation
+      if (!s || s === "-" || s === "Not Yet" || s === "Waiting Process") {
+        return "Negotiation";
+      }
+      return s;
     }
 
     function cascadeStages(stages, ticketStatus) {
@@ -1594,10 +1594,7 @@
       return fallbackStatus || "Open";
     }
 
-    // Handover rules:
-    // - Staging blank -> Negotiation (unless later stages already active/done)
-    // - Staging "Deal" -> auto "Open" (unless later stages already active/pending/done)
-    // - Staging "Not Deal" -> auto "Closed"
+    // Handover flow: Solved Survey -> Negotiation -> Pending -> Open (Deal) / Closed
     function computeHandoverStatus(staging, materialEquip, forwardWo, fallbackStatus) {
       const stg = normalizeHandoverStaging(staging);
       const mat = normalizeStageVal(materialEquip);
@@ -1614,8 +1611,8 @@
         return "On Progress";
       }
       if (stg === "Deal") return "Open";
-      if (!stg) return "Negotiation";
-      return fallbackStatus || "Negotiation";
+      if (stg === "Negotiation") return "Pending";
+      return fallbackStatus || "Pending";
     }
 
     function normalizeMappingStatus(rawStatus) {
@@ -1879,13 +1876,13 @@
               : ["Cancel", "Not Deal"].includes(rawVal);
 
             const isActiveState = st.key === "staging"
-              ? rawVal === ""
+              ? rawVal === "Negotiation"
               : ["Pending", "On Progress", "Waiting Approval"].includes(rawVal);
 
             let isOngoingStep = false;
             if (isActiveState && st.key !== "staging") {
               isOngoingStep = true;
-            } else if (st.key === "staging" && rawVal === "" && t.computedStatus !== "Closed") {
+            } else if (st.key === "staging" && rawVal === "Negotiation" && t.computedStatus !== "Closed") {
               isOngoingStep = true;
             } else if (sIdx === 0 && t.computedStatus === "On Progress" && !rawVal) {
               isOngoingStep = true;
@@ -1925,7 +1922,7 @@
               circleStyle = "bg-orange-500/20 border-2 border-orange-500 text-orange-400";
               iconHtml = dotSvg;
               labelColor = "text-orange-300 font-bold";
-              subText = st.key === "staging" && !rawVal ? "Negotiation" : (rawVal || "Next");
+              subText = st.key === "staging" ? (rawVal || "Negotiation") : (rawVal || "Next");
               subColor = "text-orange-400 font-semibold";
             }
 
@@ -1980,7 +1977,7 @@
           .filter(entry => entry.parsed.changes.length > 0);
 
         const helperHintHtml = activeStageObj.key === "staging"
-          ? `<p class="text-[10.5px] text-slate-400">Blank = <strong class="text-amber-300">Negotiation</strong> • <strong class="text-emerald-400">Deal</strong> = auto <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = auto <strong class="text-emerald-400">Closed</strong>.</p>`
+          ? `<p class="text-[10.5px] text-slate-400">Solved Survey → <strong class="text-amber-300">Negotiation</strong> (<strong class="text-violet-300">Pending</strong>) • <strong class="text-emerald-400">Deal</strong> = <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = <strong class="text-emerald-400">Closed</strong>.</p>`
           : "";
 
         const saveHandler = pipelineType === "Handover"
@@ -2011,10 +2008,7 @@
                 <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">${activeStageObj.label} State</label>
                 <select id="exp-stageval-${t.rowIndex}" class="w-full bg-[#151923] border border-white/15 rounded-xl px-3 py-2 font-bold text-white focus:border-orange-500 focus:outline-none">
                   ${activeStageObj.opts.map(o => {
-                    const isStagingOpt = activeStageObj.key === "staging";
-                    const v = isStagingOpt
-                      ? (o === "Negotiation" ? "" : o)
-                      : (o === "Not Yet" ? "" : o);
+                    const v = o === "Not Yet" ? "" : o;
                     return `<option value="${v}" ${currentStageVal === v ? "selected" : ""}>${o}</option>`;
                   }).join("")}
                 </select>
@@ -2357,6 +2351,65 @@
       if (needAttentionExpanded) renderActiveTab();
     }
 
+    function applyOptimisticHistoryEntry(division, ticketId, customerName, statusVal, actionLabel, detailText, picName) {
+      const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+      const entry = {
+        timestamp: nowStr,
+        division: division,
+        ticketId: ticketId,
+        workOrderId: ticketId,
+        customer: customerName,
+        workOrderName: customerName,
+        action: actionLabel,
+        detail: detailText,
+        pic: picName,
+        status: statusVal
+      };
+      if (!Array.isArray(cachedHistory[division])) cachedHistory[division] = [];
+      cachedHistory[division].unshift(entry);
+      if (historyTypeActive === division && Array.isArray(allHistoryForType)) {
+        allHistoryForType.unshift(entry);
+        onHistoryFilterChange();
+      }
+    }
+
+    function refreshAllViewsOptimistic() {
+      updateNeedAttentionCounts();
+      renderCombinedKpi();
+      renderWeeklyPanel();
+      if (needAttentionExpanded) renderActiveTab();
+      syncStickyOffsets();
+    }
+
+    async function sendWorkOrderPayload(payload) {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        });
+        if (res && res.ok) {
+          try {
+            const data = await res.json();
+            if (data && data.ok === false) {
+              throw new Error(data.message || "Server rejected update.");
+            }
+          } catch (_) {
+            // Non-JSON response is acceptable
+          }
+          return;
+        }
+      } catch (corsOrNetErr) {
+        // Fallback for Google Apps Script web app redirect/CORS behavior
+      }
+      await fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      });
+    }
+
     async function saveExpandedSurveyStage(rowIndex, ticketId, stageKey, btn) {
       if (!authToken || !currentUser) return alert("Please sign in with your Google account first to update work orders.");
       const ticket = (appData.survey || []).find(item => item.rowIndex === rowIndex);
@@ -2375,6 +2428,7 @@
       const initialMainStatus = statusEl.getAttribute("data-initial") || ticket.status;
       const isManualStatusChanged = selectedMainStatus !== initialMainStatus;
 
+      const prevStages = [ticket.survey || "", ticket.reportSurvey || "", ticket.boq || ""];
       const rawStages = [
         stageKey === "survey" ? updatedStageVal : (ticket.survey || ""),
         stageKey === "reportSurvey" ? updatedStageVal : (ticket.reportSurvey || ""),
@@ -2402,16 +2456,45 @@
         stageDetails: sd
       };
 
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        });
+      const wasAlreadyClosed = getSurveyItemStatus(ticket) === "Closed";
+      const willAutoCreateHandover = autoSyncedStatus === "Closed" && !wasAlreadyClosed;
 
-        const wasAlreadyClosed = getSurveyItemStatus(ticket) === "Closed";
-        const willAutoCreateHandover = autoSyncedStatus === "Closed" && !wasAlreadyClosed;
+      try {
+        await sendWorkOrderPayload(payload);
+
+        const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+        ticket.status = autoSyncedStatus;
+        ticket.survey = cascaded[0];
+        ticket.reportSurvey = cascaded[1];
+        ticket.boq = cascaded[2];
+        ticket.stageDetails = sd;
+        ticket.lastUpdated = nowStr;
+
+        const stageLabelMap = { survey: "Survey", reportSurvey: "Report Survey", boq: "BOQ" };
+        const stgLabel = stageLabelMap[stageKey] || stageKey;
+        const oldValDisp = normalizeStageVal(prevStages[stageKey === "survey" ? 0 : stageKey === "reportSurvey" ? 1 : 2]) || "Not Yet";
+        const newValDisp = normalizeStageVal(updatedStageVal) || "Not Yet";
+        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldValDisp} → ${newValDisp}${updatedNote ? ` | Ket: ${updatedNote}` : ""} | PIC: ${autoPic}`;
+        applyOptimisticHistoryEntry("Survey", ticketId, ticket.customer, autoSyncedStatus, "UPDATE", logDetail, autoPic);
+
+        if (willAutoCreateHandover && !(appData.handover || []).some(h => (h.customer || "").trim().toLowerCase() === (ticket.customer || "").trim().toLowerCase())) {
+          const nextNum = (appData.handover || []).length + 1;
+          appData.handover.push({
+            rowIndex: 999000 + nextNum,
+            no: nextNum,
+            status: "Pending",
+            customer: ticket.customer,
+            ticketId: `HND-${String(nextNum).padStart(4, "0")}`,
+            workOrderId: `HND-${String(nextNum).padStart(4, "0")}`,
+            staging: "Negotiation",
+            materialEquip: "",
+            forwardWo: "",
+            lastUpdated: nowStr,
+            stageDetails: { staging: { pic: autoPic, note: `Auto-created from Closed Survey ${ticketId} (Negotiation -> Pending)` } }
+          });
+        }
+
+        refreshAllViewsOptimistic();
 
         btn.innerText = willAutoCreateHandover ? "✓ Saved & Handover Created" : "✓ Saved";
         btn.classList.remove("from-orange-500", "to-amber-500");
@@ -2442,9 +2525,13 @@
       const initialMainStatus = statusEl.getAttribute("data-initial") || ticket.status;
       const isManualStatusChanged = selectedMainStatus !== initialMainStatus;
 
-      const newStaging = stageKey === "staging" ? normalizeHandoverStaging(updatedStageVal) : normalizeHandoverStaging(ticket.staging);
-      const newMat = stageKey === "materialEquip" ? normalizeStageVal(updatedStageVal) : normalizeStageVal(ticket.materialEquip);
-      const newFwd = stageKey === "forwardWo" ? normalizeStageVal(updatedStageVal) : normalizeStageVal(ticket.forwardWo);
+      const prevStaging = normalizeHandoverStaging(ticket.staging);
+      const prevMat = normalizeStageVal(ticket.materialEquip);
+      const prevFwd = normalizeStageVal(ticket.forwardWo);
+
+      const newStaging = stageKey === "staging" ? normalizeHandoverStaging(updatedStageVal) : prevStaging;
+      const newMat = stageKey === "materialEquip" ? normalizeStageVal(updatedStageVal) : prevMat;
+      const newFwd = stageKey === "forwardWo" ? normalizeStageVal(updatedStageVal) : prevFwd;
 
       const computedStatus = computeHandoverStatus(
         newStaging,
@@ -2470,12 +2557,33 @@
       };
 
       try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        });
+        await sendWorkOrderPayload(payload);
+
+        const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+        ticket.status = computedStatus;
+        ticket.staging = newStaging;
+        ticket.materialEquip = newMat;
+        ticket.forwardWo = newFwd;
+        ticket.stageDetails = sd;
+        ticket.lastUpdated = nowStr;
+
+        const hndLabelMap = { staging: "Staging", materialEquip: "Materials & Equip.", forwardWo: "Forward WO" };
+        const stgLabel = hndLabelMap[stageKey] || stageKey;
+        const oldDisp = stageKey === "staging"
+          ? (prevStaging || "Negotiation")
+          : stageKey === "materialEquip"
+            ? (prevMat || "Not Yet")
+            : (prevFwd || "Not Yet");
+        const newDisp = stageKey === "staging"
+          ? (newStaging || "Negotiation")
+          : stageKey === "materialEquip"
+            ? (newMat || "Not Yet")
+            : (newFwd || "Not Yet");
+        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldDisp} → ${newDisp}${updatedNote ? ` | Ket: ${updatedNote}` : ""} | PIC: ${autoPic}`;
+        applyOptimisticHistoryEntry("Handover", ticketId, ticket.customer, computedStatus, "UPDATE", logDetail, autoPic);
+
+        refreshAllViewsOptimistic();
+
         btn.innerText = "✓ Saved";
         btn.classList.remove("from-orange-500", "to-amber-500");
         btn.classList.add("bg-emerald-400");
@@ -2545,24 +2653,38 @@
       btn.innerText = "Saving...";
       btn.disabled = true;
 
+      const newStatus = document.getElementById(`${idPrefix}-map-status-${r}`).value;
+      const newCov = document.getElementById(`${idPrefix}-map-cov-${r}`).value;
+      const newDesc = document.getElementById(`${idPrefix}-map-desc-${r}`).value.trim();
+      const autoPic = formatPicLabel(currentUser.name);
+
       const payload = {
         ticketType: "Mapping",
         action: "update",
         token: authToken,
         rowIndex: r,
-        status: document.getElementById(`${idPrefix}-map-status-${r}`).value,
-        coverage: document.getElementById(`${idPrefix}-map-cov-${r}`).value,
-        pic: formatPicLabel(currentUser.name),
-        description: document.getElementById(`${idPrefix}-map-desc-${r}`).value.trim()
+        status: newStatus,
+        coverage: newCov,
+        pic: autoPic,
+        description: newDesc
       };
 
       try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        });
+        await sendWorkOrderPayload(payload);
+
+        const item = (appData.mapping || []).find(m => m.rowIndex === r);
+        const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+        if (item) {
+          item.status = newStatus;
+          item.coverage = newCov;
+          item.description = newDesc;
+          item.pic = autoPic;
+          item.lastUpdated = nowStr;
+          applyOptimisticHistoryEntry("Mapping", item.ticketId, item.customer, newStatus, "UPDATE", `[Mapping] Status: ${newStatus}, Coverage: ${newCov || "Not Yet"} | PIC: ${autoPic}`, autoPic);
+        }
+
+        refreshAllViewsOptimistic();
+
         btn.innerText = "✓ Saved";
         btn.classList.replace("bg-orange-500", "bg-emerald-400");
         setTimeout(() => fetchAllData(), 2200);
@@ -2632,10 +2754,10 @@
           `;
         }).join("");
       } else if (type === "Handover") {
-        const stgVal = record ? normalizeHandoverStaging(record.staging) : "";
+        const stgVal = record ? normalizeHandoverStaging(record.staging) : "Negotiation";
         const matVal = record ? (normalizeStageVal(record.materialEquip) || "Not Yet") : "Not Yet";
         const fwdVal = record ? (normalizeStageVal(record.forwardWo) || "Not Yet") : "Not Yet";
-        const overallSt = record ? computeHandoverStatus(stgVal, matVal, fwdVal, record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Negotiation");
+        const overallSt = record ? computeHandoverStatus(stgVal, matVal, fwdVal, record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Pending");
 
         metaEl.innerText = `${ticketId} • Division: Business Integration (Handover Pipeline)`;
         statusEl.innerHTML = getStatusPillHtml(overallSt);
@@ -2942,9 +3064,9 @@
           : [];
         const noteLines = doc.splitTextToSize(parsed.note || "-", contentW - 12);
 
-        const changesBlockH = changeLines.length > 0 ? (6 + changeLines.length * 4.2) : 0;
-        const noteBlockH = 6 + noteLines.length * 4.2;
-        const cardH = 15 + changesBlockH + noteBlockH + 4;
+        const changesBlockH = changeLines.length > 0 ? (8.5 + changeLines.length * 4.4) : 0;
+        const noteBlockH = 8.5 + noteLines.length * 4.4;
+        const cardH = 16 + changesBlockH + noteBlockH + 4;
 
         ensureSpace(cardH);
 
@@ -2990,12 +3112,12 @@
           doc.setFont("helvetica", "normal");
           doc.setFontSize(8);
           doc.setTextColor(30, 41, 59);
-          let lineY = cy + 7.5;
+          let lineY = cy + 7.8;
           changeLines.forEach(cl => {
             doc.text(cl, marginX + 6.5, lineY);
-            lineY += 4.2;
+            lineY += 4.4;
           });
-          cy += changesBlockH + 1;
+          cy += changesBlockH + 1.2;
         }
 
         doc.setFillColor(255, 247, 237);
@@ -3003,19 +3125,28 @@
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(154, 52, 18);
-        doc.text("REMARK / NOTES", marginX + 6.5, cy + 3.8);
+        doc.text("REMARK / NOTES", marginX + 6.5, cy + 4.0);
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(39, 39, 42);
-        let noteY = cy + 7.5;
+        let noteY = cy + 7.8;
         noteLines.forEach(nl => {
           doc.text(nl, marginX + 6.5, noteY);
-          noteY += 4.2;
+          noteY += 4.4;
         });
 
         y += cardH + 2;
       });
+
+      const totalPages = doc.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(110, 118, 129);
+        doc.text(`BLiP OpsPulse Console • Page ${p} of ${totalPages}`, pageW - marginX, pageH - 6, { align: "right" });
+      }
 
       const safeFile = targetLabel.replace(/[^a-zA-Z0-9-_]/g, "_");
       const filePrefix = historySingleCustomerMode ? "BLiP_Customer_Receipt" : "BLiP_All_Activity_Log";
@@ -3086,7 +3217,7 @@
         payload.staging = stg;
         payload.materialEquip = mat;
         payload.forwardWo = fwd;
-        payload.status = computeHandoverStatus(stg, mat, fwd, "Negotiation");
+        payload.status = computeHandoverStatus(stg, mat, fwd, "Pending");
       } else {
         payload.status = document.getElementById("newMappingStatus").value;
         payload.coverage = document.getElementById("newCoverage").value;
@@ -3095,12 +3226,59 @@
       }
 
       try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        });
+        await sendWorkOrderPayload(payload);
+
+        const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+        const prefix = type === "Survey" ? "SRV" : type === "Handover" ? "HND" : "MAP";
+        const targetArr = type === "Survey" ? appData.survey : type === "Handover" ? appData.handover : appData.mapping;
+        const seqNum = (targetArr ? targetArr.length : 0) + 1;
+        const tempId = `${prefix}-${String(seqNum).padStart(4, "0")}`;
+
+        if (type === "Survey") {
+          appData.survey.push({
+            rowIndex: 998000 + seqNum,
+            no: seqNum,
+            status: payload.status,
+            customer: customer,
+            ticketId: tempId,
+            workOrderId: tempId,
+            survey: payload.survey,
+            reportSurvey: payload.reportSurvey,
+            boq: payload.boq,
+            lastUpdated: nowStr,
+            stageDetails: {}
+          });
+        } else if (type === "Handover") {
+          appData.handover.push({
+            rowIndex: 999000 + seqNum,
+            no: seqNum,
+            status: payload.status,
+            customer: customer,
+            ticketId: tempId,
+            workOrderId: tempId,
+            staging: payload.staging,
+            materialEquip: payload.materialEquip,
+            forwardWo: payload.forwardWo,
+            lastUpdated: nowStr,
+            stageDetails: {}
+          });
+        } else {
+          appData.mapping.push({
+            rowIndex: 997000 + seqNum,
+            no: seqNum,
+            status: payload.status,
+            customer: customer,
+            ticketId: tempId,
+            workOrderId: tempId,
+            coverage: payload.coverage,
+            description: payload.description,
+            pic: payload.pic,
+            lastUpdated: nowStr
+          });
+        }
+
+        refreshAllViewsOptimistic();
+
         document.getElementById("newCustomer").value = "";
         document.getElementById("newMappingDesc").value = "";
         closeAddModal();
