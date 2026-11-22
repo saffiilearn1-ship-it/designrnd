@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BLiP v5.1.1</title>
+  <title>BLiP v5.1.2</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -865,7 +865,7 @@
         </div>
         <div class="bg-[#0d1017] p-4 rounded-2xl border border-white/[0.08]">
           <p class="text-slate-500 text-[10px] uppercase tracking-wider font-bold">Build Release</p>
-          <p class="font-bold text-white mt-1">BLiP Dashboard v5.1.1</p>
+          <p class="font-bold text-white mt-1">BLiP Dashboard v5.1.2</p>
           <p class="text-[11px] text-slate-400 mt-1">3-Division Work Orders (Mapping, Survey, Handover) • Customer Receipt Logs • Interactive Stage Pipelines</p>
         </div>
       </div>
@@ -1576,7 +1576,21 @@
       return true;
     }
 
-    // Parse timestamp secara konsisten dalam zona waktu WIB (Asia/Jakarta, UTC+7)
+    function buildDatePartsFromNumbers(yyyy, mm, dd, hhStr, minStr, ssStr, hasTime) {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const hh = hasTime ? String(hhStr || "00").padStart(2, "0") : "";
+      const min = hasTime ? String(minStr || "00").padStart(2, "0") : "";
+      const ss = hasTime ? String(ssStr || "00").padStart(2, "0") : "00";
+      return {
+        yyyy, mm, dd,
+        hh, min, ss,
+        hasTime: Boolean(hasTime),
+        dateLabel: `${monthNames[mm - 1] || mm} ${dd}, ${yyyy}`,
+        dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1] || mm} ${yyyy}`
+      };
+    }
+
+    // Parse timestamp mentah dari Google Sheet apa adanya; jika ada explicit timezone offset (Z / +07:00), konversi ke WIB
     function extractRawDateParts(rawTs) {
       if (!rawTs || rawTs === "-") return null;
       const str = String(rawTs).trim();
@@ -1596,58 +1610,73 @@
         dec: 12, desember: 12, december: 12, des: 12
       };
 
-      const buildObj = (yyyy, mm, dd, hh, min, ss, hasTime) => ({
-        yyyy, mm, dd,
-        hh: hasTime ? String(hh).padStart(2, "0") : "",
-        min: hasTime ? String(min).padStart(2, "0") : "",
-        ss: hasTime ? String(ss || 0).padStart(2, "0") : "00",
-        hasTime: Boolean(hasTime),
-        dateLabel: `${monthNames[mm - 1] || mm} ${dd}, ${yyyy}`,
-        dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1] || mm} ${yyyy}`
-      });
-
-      const fromDateInJakarta = (d, hasTime = true) => {
-        if (!d || isNaN(d.getTime())) return null;
-        const parts = new Intl.DateTimeFormat("en-GB", {
-          timeZone: "Asia/Jakarta",
-          year: "numeric", month: "2-digit", day: "2-digit",
-          hour: "2-digit", minute: "2-digit", second: "2-digit",
-          hour12: false
-        }).formatToParts(d);
-        const get = (t) => Number((parts.find(x => x.type === t) || {}).value || 0);
-        return buildObj(get("year"), get("month"), get("day"), get("hour"), get("minute"), get("second"), hasTime);
-      };
-
-      // 0. Jika string punya zona waktu eksplisit (ISO Z / +00:00 / -0700 / GMT+0800), konversi akurat ke Asia/Jakarta (WIB)
-      if (/(?:Z|[+-]\d{2}:?\d{2}|GMT[+-]\d{4})/i.test(str)) {
-        const d = new Date(str);
-        if (!isNaN(d.getTime())) {
-          return fromDateInJakarta(d, true);
+      // 1. Format ISO dengan explicit timezone (Z atau ±HH:MM) -> konversi ke WIB (Asia/Jakarta)
+      let m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T\s]+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/i);
+      if (m) {
+        const parsedUtc = new Date(str);
+        if (!isNaN(parsedUtc.getTime())) {
+          const parts = new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Jakarta",
+            year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit",
+            hour12: false
+          }).formatToParts(parsedUtc);
+          const g = (t) => (parts.find(x => x.type === t) || {}).value || "00";
+          return buildDatePartsFromNumbers(Number(g("year")), Number(g("month")), Number(g("day")), g("hour"), g("minute"), g("second"), true);
         }
       }
 
-      // 1. Format YYYY-MM-DD HH:mm(:ss) (tanpa offset -> sudah WIB)
-      let m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      // 1b. Format YYYY-MM-DD HH:mm(:ss) tanpa offset (sudah WIB)
+      m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
       if (m) {
-        return buildObj(Number(m[1]), Number(m[2]), Number(m[3]), m[4], m[5], m[6], m[4] !== undefined);
+        return buildDatePartsFromNumbers(Number(m[1]), Number(m[2]), Number(m[3]), m[4], m[5], m[6], m[4] !== undefined);
       }
 
-      // 2. Format DD/MM/YYYY atau DD-MM-YYYY
+      // 2. Format DD/MM/YYYY atau DD-MM-YYYY (umum dari Google Sheet Indonesia)
       m = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
       if (m) {
-        return buildObj(Number(m[3]), Number(m[2]), Number(m[1]), m[4], m[5], m[6], m[4] !== undefined);
+        const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
+        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
+        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
+        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
+        return {
+          yyyy, mm, dd,
+          hh, min, ss,
+          hasTime: m[4] !== undefined,
+          dateLabel: `${monthNames[mm - 1] || mm} ${dd}, ${yyyy}`,
+          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1] || mm} ${yyyy}`
+        };
       }
 
-      // 3. Format dengan nama hari opsional, misal "Mon Nov 23 2026 08:10:22" (toString() dari Google Apps Script Date!)
-      m = str.match(/^(?:[A-Za-z]{3,9},?\s+)?([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-      if (m && monthMap[m[1].toLowerCase()]) {
-        return buildObj(Number(m[3]), monthMap[m[1].toLowerCase()], Number(m[2]), m[4], m[5], m[6], m[4] !== undefined);
-      }
-
-      // 4. Format "22 Nov 2026, 16:45 WIB"
-      m = str.match(/^(?:[A-Za-z]{3,9},?\s+)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      // 3. Format "22 Nov 2026, 16:45 WIB" atau "Nov 22, 2026 16:45"
+      m = str.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
       if (m && monthMap[m[2].toLowerCase()]) {
-        return buildObj(Number(m[3]), monthMap[m[2].toLowerCase()], Number(m[1]), m[4], m[5], m[6], m[4] !== undefined);
+        const dd = Number(m[1]), mm = monthMap[m[2].toLowerCase()], yyyy = Number(m[3]);
+        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
+        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
+        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
+        return {
+          yyyy, mm, dd,
+          hh, min, ss,
+          hasTime: m[4] !== undefined,
+          dateLabel: `${monthNames[mm - 1]} ${dd}, ${yyyy}`,
+          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1]} ${yyyy}`
+        };
+      }
+
+      m = str.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (m && monthMap[m[1].toLowerCase()]) {
+        const mm = monthMap[m[1].toLowerCase()], dd = Number(m[2]), yyyy = Number(m[3]);
+        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
+        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
+        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
+        return {
+          yyyy, mm, dd,
+          hh, min, ss,
+          hasTime: m[4] !== undefined,
+          dateLabel: `${monthNames[mm - 1]} ${dd}, ${yyyy}`,
+          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1]} ${yyyy}`
+        };
       }
 
       return null;
@@ -2672,10 +2701,18 @@
     }
 
     async function sendWorkOrderPayload(payload) {
+      const normalizedPayload = Object.assign({}, payload);
+      if (normalizedPayload.stageDetails && typeof normalizedPayload.stageDetails === "object") {
+        normalizedPayload.stageDetails = JSON.stringify(normalizedPayload.stageDetails);
+      }
+      if (!normalizedPayload.logDetail && normalizedPayload.description) {
+        normalizedPayload.logDetail = `[${normalizedPayload.activeStage || normalizedPayload.ticketType || "Update"}] Status: ${normalizedPayload.status || "-"} | PIC: ${normalizedPayload.pic || "-"} | Ket: ${normalizedPayload.description}`;
+      }
+      const enrichedPayload = Object.assign({ clientTimestamp: getNowWibString() }, normalizedPayload);
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(enrichedPayload)
       });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
@@ -2728,7 +2765,6 @@
       const payload = {
         ticketType: "Survey",
         action: "update",
-        clientTimestamp: getNowWibString(),
         token: authToken,
         rowIndex: ticket.rowIndex,
         ticketId: ticket.ticketId || ticketId,
@@ -2815,7 +2851,6 @@
             const hndResp = await sendWorkOrderPayload({
               ticketType: "Handover",
               action: "add",
-              clientTimestamp: nowStr,
               token: authToken,
               customer: ticket.customer,
               ticketId: newHandoverId,
@@ -2896,7 +2931,6 @@
       const payload = {
         ticketType: "Handover",
         action: "update",
-        clientTimestamp: getNowWibString(),
         token: authToken,
         rowIndex: ticket.rowIndex,
         ticketId: ticket.ticketId || ticketId,
@@ -3065,7 +3099,6 @@
       const payload = {
         ticketType: "Mapping",
         action: "update",
-        clientTimestamp: getNowWibString(),
         token: authToken,
         rowIndex: item.rowIndex,
         ticketId: item.ticketId || ticketId,
@@ -3521,12 +3554,10 @@
       if (ticketRecord && ticketRecord.createdAt && ticketRecord.createdAt !== "-") {
         candidateTs.push(ticketRecord.createdAt);
       }
-      for (const lg of chronologicalLogs) {
-        if (lg && lg.timestamp && lg.timestamp !== "-") {
-          candidateTs.push(lg.timestamp);
-        }
+      if (chronologicalLogs.length > 0 && chronologicalLogs[0].timestamp) {
+        candidateTs.push(chronologicalLogs[0].timestamp);
       }
-      if (candidateTs.length === 0 && ticketRecord && ticketRecord.lastUpdated && ticketRecord.lastUpdated !== "-") {
+      if (ticketRecord && ticketRecord.lastUpdated && ticketRecord.lastUpdated !== "-") {
         candidateTs.push(ticketRecord.lastUpdated);
       }
 
@@ -3585,11 +3616,7 @@
         return;
       }
 
-      const chronologicalLogs = [...filteredHistoryLogs].sort((a, b) => {
-        const da = parseLocalTimestamp(a.timestamp);
-        const db = parseLocalTimestamp(b.timestamp);
-        return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
-      });
+      const chronologicalLogs = [...filteredHistoryLogs].reverse();
       const logsToRender = historySingleCustomerMode
         ? chronologicalLogs
         : filteredHistoryLogs;
@@ -3721,6 +3748,7 @@
       const stageDefs = getStageDefsForType(historyTypeActive);
       const stageObj = historyStageFilterKey ? stageDefs.find(s => s.key === historyStageFilterKey) : null;
       const printedAt = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Jakarta",
         day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
       }) + " WIB";
 
@@ -3732,11 +3760,7 @@
         receiptRecord = findWorkOrderRecord(historyTypeActive, historyLockedTicketId);
         const custName = (receiptRecord && receiptRecord.customer) || (filteredHistoryLogs[0] && filteredHistoryLogs[0].customer) || "-";
         targetLabel = `${historyLockedTicketId} - ${custName}`;
-        logsForPdf = [...filteredHistoryLogs].sort((a, b) => {
-          const da = parseLocalTimestamp(a.timestamp);
-          const db = parseLocalTimestamp(b.timestamp);
-          return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
-        });
+        logsForPdf = [...filteredHistoryLogs].reverse();
       } else {
         const filterSelect = document.getElementById("historyCustomerFilter");
         targetLabel = filterSelect.options[filterSelect.selectedIndex].text;
@@ -3947,9 +3971,7 @@
       btn.innerText = "Creating...";
       btn.disabled = true;
 
-      const nowWib = getNowWibString();
-      let payload = { ticketType: type, action: "add",
-              clientTimestamp: nowWib, token: authToken, customer: customer };
+      let payload = { ticketType: type, action: "add", token: authToken, customer: customer };
 
       if (type === "Survey") {
         const chosenStatus = document.getElementById("newSurveyStatus").value;
