@@ -1576,37 +1576,117 @@
       return true;
     }
 
-    function parseLocalTimestamp(rawTs) {
+    // Parse timestamp mentah dari Google Sheet apa adanya tanpa konversi timezone browser
+    function extractRawDateParts(rawTs) {
       if (!rawTs || rawTs === "-") return null;
       const str = String(rawTs).trim();
-      const m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthMap = {
+        jan: 1, januari: 1, january: 1,
+        feb: 2, februari: 2, february: 2,
+        mar: 3, maret: 3, march: 3,
+        apr: 4, april: 4,
+        may: 5, mei: 5,
+        jun: 6, juni: 6, june: 6,
+        jul: 7, juli: 7, july: 7,
+        aug: 8, agustus: 8, august: 8, agt: 8,
+        sep: 9, september: 9, sept: 9,
+        oct: 10, oktober: 10, october: 10, okt: 10,
+        nov: 11, november: 11,
+        dec: 12, desember: 12, december: 12, des: 12
+      };
+
+      // 1. Format ISO / YYYY-MM-DD HH:mm(:ss) (ambil angka tanggal & jam langsung, abaikan offset Z/+00:00)
+      let m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
       if (m) {
-        return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6] || 0));
+        const yyyy = Number(m[1]), mm = Number(m[2]), dd = Number(m[3]);
+        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
+        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
+        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
+        return {
+          yyyy, mm, dd,
+          hh, min, ss,
+          hasTime: m[4] !== undefined,
+          dateLabel: `${monthNames[mm - 1] || mm} ${dd}, ${yyyy}`,
+          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1] || mm} ${yyyy}`
+        };
       }
-      const d = new Date(str);
-      return isNaN(d.getTime()) ? null : d;
+
+      // 2. Format DD/MM/YYYY atau DD-MM-YYYY (umum dari Google Sheet Indonesia)
+      m = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (m) {
+        const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
+        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
+        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
+        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
+        return {
+          yyyy, mm, dd,
+          hh, min, ss,
+          hasTime: m[4] !== undefined,
+          dateLabel: `${monthNames[mm - 1] || mm} ${dd}, ${yyyy}`,
+          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1] || mm} ${yyyy}`
+        };
+      }
+
+      // 3. Format "22 Nov 2026, 16:45 WIB" atau "Nov 22, 2026 16:45"
+      m = str.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (m && monthMap[m[2].toLowerCase()]) {
+        const dd = Number(m[1]), mm = monthMap[m[2].toLowerCase()], yyyy = Number(m[3]);
+        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
+        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
+        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
+        return {
+          yyyy, mm, dd,
+          hh, min, ss,
+          hasTime: m[4] !== undefined,
+          dateLabel: `${monthNames[mm - 1]} ${dd}, ${yyyy}`,
+          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1]} ${yyyy}`
+        };
+      }
+
+      m = str.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (m && monthMap[m[1].toLowerCase()]) {
+        const mm = monthMap[m[1].toLowerCase()], dd = Number(m[2]), yyyy = Number(m[3]);
+        const hh = m[4] !== undefined ? String(m[4]).padStart(2, "0") : "";
+        const min = m[5] !== undefined ? String(m[5]).padStart(2, "0") : "";
+        const ss = m[6] !== undefined ? String(m[6]).padStart(2, "0") : "00";
+        return {
+          yyyy, mm, dd,
+          hh, min, ss,
+          hasTime: m[4] !== undefined,
+          dateLabel: `${monthNames[mm - 1]} ${dd}, ${yyyy}`,
+          dateLabelShort: `${String(dd).padStart(2, "0")} ${monthNames[mm - 1]} ${yyyy}`
+        };
+      }
+
+      return null;
+    }
+
+    function parseLocalTimestamp(rawTs) {
+      const p = extractRawDateParts(rawTs);
+      if (p) {
+        return new Date(p.yyyy, p.mm - 1, p.dd, Number(p.hh || 0), Number(p.min || 0), Number(p.ss || 0));
+      }
+      return null;
     }
 
     function formatDisplayDate(tsStr) {
       if (!tsStr || tsStr === "-") return "-";
-      const d = parseLocalTimestamp(tsStr);
-      if (d) {
-        const datePart = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-        const hh = String(d.getHours()).padStart(2, "0");
-        const mm = String(d.getMinutes()).padStart(2, "0");
-        return `<span class="font-semibold text-slate-200">${datePart}</span><br><span class="font-mono-code text-slate-500 text-[10.5px]">${hh}:${mm} WIB</span>`;
+      const p = extractRawDateParts(tsStr);
+      if (p) {
+        const timeLine = p.hasTime
+          ? `<br><span class="font-mono-code text-slate-500 text-[10.5px]">${p.hh}:${p.min} WIB</span>`
+          : "";
+        return `<span class="font-semibold text-slate-200">${p.dateLabel}</span>${timeLine}`;
       }
-      return String(tsStr);
+      return `<span class="font-semibold text-slate-200">${String(tsStr).replace(/GMT[+-]\d{4}.*$/i, "").trim()}</span>`;
     }
 
     function cleanTimestamp(rawTs) {
       if (!rawTs || rawTs === "-") return "-";
-      const d = parseLocalTimestamp(rawTs);
-      if (d) {
-        const dp = d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
-        const hh = String(d.getHours()).padStart(2, "0");
-        const mm = String(d.getMinutes()).padStart(2, "0");
-        return `${dp}, ${hh}:${mm} WIB`;
+      const p = extractRawDateParts(rawTs);
+      if (p) {
+        return p.hasTime ? `${p.dateLabelShort}, ${p.hh}:${p.min} WIB` : p.dateLabelShort;
       }
       return String(rawTs).replace(/GMT[+-]\d{4}.*$/i, "").trim();
     }
@@ -2557,9 +2637,15 @@
     }
 
     function getNowWibString() {
-      const d = new Date();
-      const pad = n => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Jakarta",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false
+      }).formatToParts(now);
+      const get = (t) => (parts.find(x => x.type === t) || {}).value || "00";
+      return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
     }
 
     function applyOptimisticHistoryEntry(division, ticketId, customerName, statusVal, actionLabel, detailText, picName) {
