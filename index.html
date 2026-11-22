@@ -1749,7 +1749,9 @@
 
         const ketSplit = blk.split("| Ket:");
         const mainPart = ketSplit[0].trim();
-        const notePart = ketSplit.length > 1 ? ketSplit.slice(1).join("| Ket:").trim() : "";
+        const notePart = ketSplit.length > 1
+          ? ketSplit.slice(1).join("| Ket:").replace(/\s*\|\s*PIC:[^|;]+/gi, "").trim()
+          : "";
 
         const cleanMain = mainPart.replace(/\s*\|\s*PIC:[^|;]+/i, "").trim();
         const transMatch = cleanMain.match(/^\[([^\]]+)\]\s*[^:]+:\s*(.+)$/);
@@ -2125,7 +2127,7 @@
           ? normalizeHandoverStaging(t[activeStageKey])
           : normalizeStageVal(t[activeStageKey]);
         const fallbackMapDetail = pipelineType === "Mapping"
-          ? { pic: t.pic || "", note: t.description || "" }
+          ? { pic: t.pic || "", note: "" }
           : { pic: "", note: "" };
         const stageDetailObj = (t.stageDetails && t.stageDetails[activeStageKey]) || fallbackMapDetail;
         const headerDisplayStatus = activeStageObj.key === "staging"
@@ -2619,18 +2621,24 @@
         await sendWorkOrderPayload(payload);
 
         const nowStr = getNowWibString();
+        const clearedSd = JSON.parse(JSON.stringify(sd));
+        clearedSd[stageKey] = { pic: autoPic, note: "" };
+
         ticket.status = autoSyncedStatus;
         ticket.survey = cascaded[0];
         ticket.reportSurvey = cascaded[1];
         ticket.boq = cascaded[2];
-        ticket.stageDetails = sd;
+        ticket.stageDetails = clearedSd;
         ticket.lastUpdated = nowStr;
+
+        const noteEl = document.getElementById(`exp-note-${rowIndex}`);
+        if (noteEl) noteEl.value = "";
 
         const stageLabelMap = { survey: "Survey", reportSurvey: "Report Survey", boq: "BOQ" };
         const stgLabel = stageLabelMap[stageKey] || stageKey;
         const oldValDisp = normalizeStageVal(prevStages[stageKey === "survey" ? 0 : stageKey === "reportSurvey" ? 1 : 2]) || "Not Yet";
         const newValDisp = normalizeStageVal(updatedStageVal) || "Not Yet";
-        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldValDisp} → ${newValDisp}${updatedNote ? ` | Ket: ${updatedNote}` : ""} | PIC: ${autoPic}`;
+        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldValDisp} → ${newValDisp} | PIC: ${autoPic}${updatedNote ? ` | Ket: ${updatedNote}` : ""}`;
         applyOptimisticHistoryEntry("Survey", ticketId, ticket.customer, autoSyncedStatus, "UPDATE", logDetail, autoPic);
 
         if (willAutoCreateHandover && !(appData.handover || []).some(h => (h.customer || "").trim().toLowerCase() === (ticket.customer || "").trim().toLowerCase())) {
@@ -2646,16 +2654,19 @@
             materialEquip: "",
             forwardWo: "",
             lastUpdated: nowStr,
-            stageDetails: { staging: { pic: autoPic, note: `Auto-created from Closed Survey ${ticketId} (Negotiation -> Pending)` } }
+            stageDetails: { staging: { pic: autoPic, note: "" } }
           });
         }
-
-        refreshAllViewsOptimistic();
 
         btn.innerText = willAutoCreateHandover ? "✓ Saved & Handover Created" : "✓ Saved";
         btn.classList.remove("from-orange-500", "to-amber-500");
         btn.classList.add("bg-emerald-400");
-        setTimeout(() => fetchAllData(), 2300);
+
+        setTimeout(() => {
+          expandedRows[ticketId] = false;
+          refreshAllViewsOptimistic();
+          setTimeout(() => fetchAllData(), 1400);
+        }, 900);
       } catch (err) {
         alert("Failed to save changes.");
         btn.innerText = origText;
@@ -2716,12 +2727,18 @@
         await sendWorkOrderPayload(payload);
 
         const nowStr = getNowWibString();
+        const clearedSd = JSON.parse(JSON.stringify(sd));
+        clearedSd[stageKey] = { pic: autoPic, note: "" };
+
         ticket.status = computedStatus;
         ticket.staging = newStaging;
         ticket.materialEquip = newMat;
         ticket.forwardWo = newFwd;
-        ticket.stageDetails = sd;
+        ticket.stageDetails = clearedSd;
         ticket.lastUpdated = nowStr;
+
+        const noteEl = document.getElementById(`exp-note-${rowIndex}`);
+        if (noteEl) noteEl.value = "";
 
         const hndLabelMap = { staging: "Staging", materialEquip: "Materials & Equip.", forwardWo: "Forward WO" };
         const stgLabel = hndLabelMap[stageKey] || stageKey;
@@ -2735,15 +2752,18 @@
           : stageKey === "materialEquip"
             ? (newMat || "Not Yet")
             : (newFwd || "Not Yet");
-        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldDisp} → ${newDisp}${updatedNote ? ` | Ket: ${updatedNote}` : ""} | PIC: ${autoPic}`;
+        const logDetail = `[${stgLabel}] ${stgLabel}: ${oldDisp} → ${newDisp} | PIC: ${autoPic}${updatedNote ? ` | Ket: ${updatedNote}` : ""}`;
         applyOptimisticHistoryEntry("Handover", ticketId, ticket.customer, computedStatus, "UPDATE", logDetail, autoPic);
-
-        refreshAllViewsOptimistic();
 
         btn.innerText = "✓ Saved";
         btn.classList.remove("from-orange-500", "to-amber-500");
         btn.classList.add("bg-emerald-400");
-        setTimeout(() => fetchAllData(), 2200);
+
+        setTimeout(() => {
+          expandedRows[ticketId] = false;
+          refreshAllViewsOptimistic();
+          setTimeout(() => fetchAllData(), 1400);
+        }, 900);
       } catch (err) {
         alert("Failed to save Handover changes.");
         btn.innerText = origText;
@@ -2862,14 +2882,20 @@
         await sendWorkOrderPayload(payload);
 
         const nowStr = getNowWibString();
+        const clearedSd = JSON.parse(JSON.stringify(sd));
+        clearedSd[stageKey] = { pic: autoPic, note: "" };
+
         item.status = newStatus;
         item.onet = newOnet;
         item.partner = newPartner;
         item.coverage = newCov;
-        item.description = updatedNote;
+        item.description = "";
         item.pic = autoPic;
-        item.stageDetails = sd;
+        item.stageDetails = clearedSd;
         item.lastUpdated = nowStr;
+
+        const noteEl = document.getElementById(`exp-note-${rowIndex}`);
+        if (noteEl) noteEl.value = "";
 
         const stageLabel = stageKey === "partner" ? "Partner" : "Onet";
         const oldDisp = stageKey === "partner" ? (prevPartner || "Not Yet") : (prevOnet || "Not Yet");
@@ -2878,16 +2904,19 @@
         if (prevStatus !== newStatus) {
           logDetail += `; Ticket Status: ${prevStatus} → ${newStatus}`;
         }
-        if (updatedNote) logDetail += ` | Ket: ${updatedNote}`;
         logDetail += ` | PIC: ${autoPic}`;
+        if (updatedNote) logDetail += ` | Ket: ${updatedNote}`;
         applyOptimisticHistoryEntry("Mapping", ticketId, item.customer, newStatus, "UPDATE", logDetail, autoPic);
-
-        refreshAllViewsOptimistic();
 
         btn.innerText = "✓ Saved";
         btn.classList.remove("from-orange-500", "to-amber-500");
         btn.classList.add("bg-emerald-400");
-        setTimeout(() => fetchAllData(), 2200);
+
+        setTimeout(() => {
+          expandedRows[ticketId] = false;
+          refreshAllViewsOptimistic();
+          setTimeout(() => fetchAllData(), 1400);
+        }, 900);
       } catch (err) {
         alert("Failed to save Mapping work order.");
         btn.innerText = origText;
