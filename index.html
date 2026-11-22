@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BLiP OpsPulse Console v5.1.0</title>
+  <title>BLiP OpsPulse Console v5.2.0</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -340,7 +340,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="font-extrabold text-white text-sm tracking-tight truncate">BLiP</span>
-                <span class="px-1.5 py-0.5 text-[10px] font-mono-code font-bold rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/30">v5.1.0</span>
+                <span class="px-1.5 py-0.5 text-[10px] font-mono-code font-bold rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/30">v5.2.0</span>
               </div>
               <p class="text-[11px] text-slate-400 truncate">OpsPulse Console</p>
             </div>
@@ -730,7 +730,7 @@
 
         <!-- Handover Initial Stages (3 Stages) -->
         <div id="newHandoverFields" class="space-y-3 hidden bg-white/[0.02] p-3.5 rounded-2xl border border-white/[0.07]">
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Handover Stages (Empty Staging = Negotiation; Deal = Auto Open)</p>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Handover Stages (Negotiation = Status Pending; Deal = Auto Open)</p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div>
               <label class="text-slate-400 font-semibold block mb-1">1. Staging</label>
@@ -856,7 +856,7 @@
         </div>
         <div class="bg-[#0d1017] p-4 rounded-2xl border border-white/[0.08]">
           <p class="text-slate-500 text-[10px] uppercase tracking-wider font-bold">Build Release</p>
-          <p class="font-bold text-white mt-1">BLiP OpsPulse Dashboard v5.1.0</p>
+          <p class="font-bold text-white mt-1">BLiP OpsPulse Dashboard v5.2.0</p>
           <p class="text-[11px] text-slate-400 mt-1">3-Division Work Orders (Mapping, Survey, Handover) • Customer Receipt Logs • Interactive Stage Pipelines</p>
         </div>
       </div>
@@ -1476,7 +1476,6 @@
     function renderFilterPills() {
       const pills = [
         { key: "NEED_ATTENTION", label: "All Active" },
-        { key: "Negotiation", label: "Negotiation" },
         { key: "Open", label: "Open" },
         { key: "On Progress", label: "On Progress" },
         { key: "Pending", label: "Pending" }
@@ -1595,27 +1594,30 @@
     }
 
     // Handover rules:
-    // - Staging blank -> Negotiation (unless later stages already active/done)
-    // - Staging "Deal" -> auto "Open" (unless later stages already active/pending/done)
-    // - Staging "Not Deal" -> auto "Closed"
+    // - Staging blank (Negotiation) -> auto "Pending"
+    // - Staging "Deal" -> auto "Open"
+    // - Staging "Not Deal" -> auto "Cancel"
+    // - Forward WO "Done" -> auto "Closed"
     function computeHandoverStatus(staging, materialEquip, forwardWo, fallbackStatus) {
       const stg = normalizeHandoverStaging(staging);
       const mat = normalizeStageVal(materialEquip);
       const fwd = normalizeStageVal(forwardWo);
 
-      if (stg === "Not Deal") return "Closed";
+      if (stg === "Not Deal" || mat === "Cancel" || fwd === "Cancel" || fallbackStatus === "Cancel") {
+        return "Cancel";
+      }
 
       const doneSet = ["Done", "Material Ready"];
       const activeSet = ["On Progress", "Waiting Approval"];
 
-      if (doneSet.includes(mat) && doneSet.includes(fwd)) return "Closed";
+      if (doneSet.includes(fwd)) return "Closed";
       if (mat === "Pending" || fwd === "Pending") return "Pending";
-      if (activeSet.includes(mat) || activeSet.includes(fwd) || doneSet.includes(mat) || doneSet.includes(fwd)) {
+      if (activeSet.includes(mat) || activeSet.includes(fwd) || doneSet.includes(mat)) {
         return "On Progress";
       }
       if (stg === "Deal") return "Open";
-      if (!stg) return "Negotiation";
-      return fallbackStatus || "Negotiation";
+      if (!stg) return "Pending";
+      return fallbackStatus || "Pending";
     }
 
     function normalizeMappingStatus(rawStatus) {
@@ -1980,7 +1982,7 @@
           .filter(entry => entry.parsed.changes.length > 0);
 
         const helperHintHtml = activeStageObj.key === "staging"
-          ? `<p class="text-[10.5px] text-slate-400">Blank = <strong class="text-amber-300">Negotiation</strong> • <strong class="text-emerald-400">Deal</strong> = auto <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = auto <strong class="text-emerald-400">Closed</strong>.</p>`
+          ? `<p class="text-[10.5px] text-slate-400">Blank = <strong class="text-amber-300">Negotiation</strong> (Ticket Status: <strong class="text-violet-300">Pending</strong>) • <strong class="text-emerald-400">Deal</strong> = auto <strong class="text-rose-400">Open</strong> • <strong class="text-slate-300">Not Deal</strong> = auto <strong class="text-slate-300">Cancel</strong>.</p>`
           : "";
 
         const saveHandler = pipelineType === "Handover"
@@ -1998,7 +2000,7 @@
                 <div class="flex items-center gap-1.5 text-xs">
                   <span class="text-slate-400">Override Status:</span>
                   <select id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" class="bg-[#151923] border border-white/15 rounded-lg px-2 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
-                    ${["Negotiation", "Open", "On Progress", "Pending", "Closed", "Cancel"].map(s => `<option value="${s}" ${t.computedStatus === s ? "selected" : ""}>${s}</option>`).join("")}
+                    ${["Open", "On Progress", "Pending", "Closed", "Cancel"].map(s => `<option value="${s}" ${t.computedStatus === s ? "selected" : ""}>${s}</option>`).join("")}
                   </select>
                 </div>
               ` : `<input type="hidden" id="exp-mainstatus-${t.rowIndex}" data-initial="${t.computedStatus}" value="${t.computedStatus}">`}
@@ -2635,7 +2637,7 @@
         const stgVal = record ? normalizeHandoverStaging(record.staging) : "";
         const matVal = record ? (normalizeStageVal(record.materialEquip) || "Not Yet") : "Not Yet";
         const fwdVal = record ? (normalizeStageVal(record.forwardWo) || "Not Yet") : "Not Yet";
-        const overallSt = record ? computeHandoverStatus(stgVal, matVal, fwdVal, record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Negotiation");
+        const overallSt = record ? computeHandoverStatus(stgVal, matVal, fwdVal, record.status) : ((filteredHistoryLogs[0] && filteredHistoryLogs[0].status) || "Pending");
 
         metaEl.innerText = `${ticketId} • Division: Business Integration (Handover Pipeline)`;
         statusEl.innerHTML = getStatusPillHtml(overallSt);
@@ -3086,7 +3088,7 @@
         payload.staging = stg;
         payload.materialEquip = mat;
         payload.forwardWo = fwd;
-        payload.status = computeHandoverStatus(stg, mat, fwd, "Negotiation");
+        payload.status = computeHandoverStatus(stg, mat, fwd, "Pending");
       } else {
         payload.status = document.getElementById("newMappingStatus").value;
         payload.coverage = document.getElementById("newCoverage").value;
