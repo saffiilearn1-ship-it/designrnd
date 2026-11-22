@@ -3262,6 +3262,87 @@
       renderHistoryTimeline();
     }
 
+    function extractStageBadgesFromLog(log, parsed, divisionType) {
+      const defs = getStageDefsForType(divisionType);
+      const rawText = [
+        String(log.detail || ""),
+        ...(Array.isArray(parsed.changes) ? parsed.changes : []),
+        String(parsed.note || "")
+      ].join(" ");
+      const lower = rawText.toLowerCase();
+      const matched = [];
+
+      const findDefByText = (txt) => {
+        const t = String(txt || "").toLowerCase().trim();
+        if (!t) return null;
+        if (/report[\s_-]*survey/.test(t)) {
+          return defs.find(d => d.key === "reportSurvey") || null;
+        }
+        const noReport = t.replace(/report[\s_-]*survey/g, " ");
+        if (/\bsurvey\b/.test(noReport)) {
+          return defs.find(d => d.key === "survey") || null;
+        }
+        if (/\bboq\b|\bpo\b/.test(t)) {
+          return defs.find(d => d.key === "boq") || null;
+        }
+        if (/\bstaging\b/.test(t)) {
+          return defs.find(d => d.key === "staging") || null;
+        }
+        if (/material|equip|procurement/.test(t)) {
+          return defs.find(d => d.key === "materialEquip") || null;
+        }
+        if (/forward[\s_-]*wo|installation[\s_-]*wo/.test(t)) {
+          return defs.find(d => d.key === "forwardWo") || null;
+        }
+        if (/\bonet\b/.test(t)) {
+          return defs.find(d => d.key === "onet") || null;
+        }
+        if (/\bpartner\b/.test(t)) {
+          return defs.find(d => d.key === "partner") || null;
+        }
+        return defs.find(d => {
+          const candidates = [d.label, d.fullLabel, ...(d.bracketTags || [])].map(x => String(x).toLowerCase());
+          return candidates.some(c => t === c || t.includes(c));
+        }) || null;
+      };
+
+      const bracketMatches = [...rawText.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim());
+      for (const bm of bracketMatches) {
+        const bmLow = bm.toLowerCase();
+        if (bmLow === "mapping" || bmLow === "update" || bmLow === "updated" || bmLow === "create" || bmLow === "created") continue;
+        const foundDef = findDefByText(bm);
+        const labelToUse = foundDef ? foundDef.label : bm;
+        if (!matched.includes(labelToUse)) matched.push(labelToUse);
+      }
+
+      if (matched.length === 0) {
+        for (const d of defs) {
+          let hit = false;
+          if (d.key === "survey") {
+            const withoutReport = lower.replace(/report[\s_-]*survey/g, " ");
+            hit = /\bsurvey\b/.test(withoutReport);
+          } else if (d.key === "reportSurvey") {
+            hit = /report[\s_-]*survey/.test(lower);
+          } else if (d.key === "boq") {
+            hit = /\bboq\b|\bpo\b/.test(lower);
+          } else if (d.key === "staging") {
+            hit = /\bstaging\b/.test(lower);
+          } else if (d.key === "materialEquip") {
+            hit = /material|equip|procurement/.test(lower);
+          } else if (d.key === "forwardWo") {
+            hit = /forward[\s_-]*wo|installation[\s_-]*wo/.test(lower);
+          } else if (d.key === "onet") {
+            hit = /\bonet\b/.test(lower);
+          } else if (d.key === "partner") {
+            hit = /\bpartner\b/.test(lower);
+          }
+          if (hit && !matched.includes(d.label)) matched.push(d.label);
+        }
+      }
+
+      return matched;
+    }
+
     function renderHistoryTimeline() {
       const container = document.getElementById("historyListContainer");
       if (filteredHistoryLogs.length === 0) {
@@ -3297,7 +3378,10 @@
                     <span class="font-mono-code text-[11px] text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 rounded-md font-bold">${item.ticketId}</span>
                     <span class="font-bold text-white text-sm">${item.customer || "-"}</span>
                   ` : ""}
-                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-300 border border-orange-500/25 font-bold uppercase">${item.action || "Updated"}</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-300 border border-orange-500/25 font-bold uppercase">[${item.action || "Updated"}]</span>
+                  ${extractStageBadgesFromLog(item, parsed, historyTypeActive).map(stBadge => `
+                    <span class="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/25 font-bold">[${stBadge}]</span>
+                  `).join("")}
                 </div>
                 <span class="font-mono-code text-[11px] text-slate-400">${cleanTimestamp(item.timestamp)}</span>
               </div>
