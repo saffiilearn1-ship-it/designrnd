@@ -2626,19 +2626,38 @@
 
         if (willAutoCreateHandover && !(appData.handover || []).some(h => (h.customer || "").trim().toLowerCase() === (ticket.customer || "").trim().toLowerCase())) {
           const nextNum = (appData.handover || []).length + 1;
-          appData.handover.push({
+          const newHandoverId = `HND-${String(nextNum).padStart(4, "0")}`;
+          const newHandoverObj = {
             rowIndex: 999000 + nextNum,
             no: nextNum,
             status: "Pending",
             customer: ticket.customer,
-            ticketId: `HND-${String(nextNum).padStart(4, "0")}`,
-            workOrderId: `HND-${String(nextNum).padStart(4, "0")}`,
+            ticketId: newHandoverId,
+            workOrderId: newHandoverId,
             staging: "Negotiation",
             materialEquip: "",
             forwardWo: "",
             lastUpdated: nowStr,
             stageDetails: { staging: { pic: autoPic, note: "" } }
-          });
+          };
+          appData.handover.push(newHandoverObj);
+
+          // Also sync new Handover record to backend/spreadsheet so it is not lost on fetchAllData()
+          sendWorkOrderPayload({
+            ticketType: "Handover",
+            action: "add",
+            token: authToken,
+            customer: ticket.customer,
+            ticketId: newHandoverId,
+            sourceSurveyTicketId: ticket.ticketId || ticketId,
+            status: "Pending",
+            staging: "Negotiation",
+            materialEquip: "",
+            forwardWo: "",
+            pic: autoPic,
+            description: `Auto-created from completed Survey ${ticket.ticketId || ticketId}`,
+            stageDetails: { staging: { pic: autoPic, note: "" } }
+          }).catch(() => {});
         }
 
         btn.innerText = willAutoCreateHandover ? "✓ Saved & Handover Created" : "✓ Saved";
