@@ -1742,13 +1742,23 @@
           }
         } else if (/^\[mapping\]/i.test(cleanMain)) {
           const mapBody = cleanMain.replace(/^\[mapping\]\s*/i, "").trim();
-          const subParts = mapBody.split(",").map(x => x.trim()).filter(Boolean);
+          const pipeParts = mapBody.split("|").map(x => x.trim()).filter(Boolean);
           let matchedAny = false;
-          for (const sp of subParts) {
-            const cIdx = sp.indexOf(":");
-            const pTitle = cIdx > 0 ? sp.slice(0, cIdx).trim() : sp;
+          for (const pp of pipeParts) {
+            if (/^ket:/i.test(pp)) {
+              const kNote = pp.replace(/^ket:\s*/i, "").trim();
+              if (kNote && kNote !== "-" && !notes.includes(kNote)) notes.push(kNote);
+              continue;
+            }
+            if (/^pic:/i.test(pp)) {
+              const pName = pp.replace(/^pic:\s*/i, "").trim();
+              if (pName && pName !== "-") detectedPic = pName;
+              continue;
+            }
+            const cIdx = pp.indexOf(":");
+            const pTitle = cIdx > 0 ? pp.slice(0, cIdx).trim() : pp;
             if (!stageOnlyObj || matchStageTag(pTitle, stageOnlyObj)) {
-              changes.push(sp);
+              changes.push(pp);
               matchedAny = true;
             }
           }
@@ -2114,7 +2124,7 @@
               <div class="flex items-center gap-1.5 text-xs">
                 <span class="text-slate-400 font-semibold">Ticket Status:</span>
                 <select id="exp-mainstatus-${t.rowIndex}" data-initial="${rawMapTicketStatus}" class="bg-[#151923] border border-orange-500/40 rounded-lg px-2.5 py-1 text-[11px] font-bold text-white focus:border-orange-500 focus:outline-none">
-                  ${["Open", "On Progress", "Done", "Outcover"].map(s => `<option value="${s}" ${rawMapTicketStatus === s ? "selected" : ""}>${s}</option>`).join("")}
+                  ${["On Progress", "Done", "Outcover"].map(s => `<option value="${s}" ${rawMapTicketStatus === s ? "selected" : ""}>${s}</option>`).join("")}
                 </select>
               </div>
             `
@@ -2425,11 +2435,18 @@
       } else {
         expandedRows[ticketId] = true;
         activeStagePerTicket[ticketId] = stageKey;
-        loadingHistoryTicket[ticketId] = true;
-        renderWeeklyPanel();
-        if (needAttentionExpanded) renderActiveTab();
-        await refreshStageHistoryCache();
-        loadingHistoryTicket[ticketId] = false;
+        if (!cachedHistory[pipelineType] || cachedHistory[pipelineType].length === 0) {
+          loadingHistoryTicket[ticketId] = true;
+          renderWeeklyPanel();
+          if (needAttentionExpanded) renderActiveTab();
+          await refreshStageHistoryCache();
+          loadingHistoryTicket[ticketId] = false;
+        } else {
+          refreshStageHistoryCache().then(() => {
+            renderWeeklyPanel();
+            if (needAttentionExpanded) renderActiveTab();
+          });
+        }
       }
       renderWeeklyPanel();
       if (needAttentionExpanded) renderActiveTab();
@@ -3043,8 +3060,15 @@
           : `All Activity Log${selectedId && selectedId !== "ALL" ? ` • ${selectedId}` : ""}`;
       }
 
+      const targetRec = (selectedId && selectedId !== "ALL") ? findWorkOrderRecord(historyTypeActive, selectedId) : null;
+      const targetCustLower = targetRec && targetRec.customer ? String(targetRec.customer).trim().toLowerCase() : "";
+
       filteredHistoryLogs = allHistoryForType.filter(log => {
-        const matchTicket = selectedId === "ALL" || String(log.ticketId).trim() === String(selectedId).trim();
+        const logTid = String(log.ticketId || log.workOrderId || "").trim();
+        const logCustLower = String(log.customer || log.workOrderName || "").trim().toLowerCase();
+        const matchTicket = selectedId === "ALL"
+          || (logTid && logTid === String(selectedId).trim())
+          || (!logTid && targetCustLower && logCustLower === targetCustLower);
         if (!matchTicket) return false;
         if (stageObj) {
           const parsed = parseResiLogEntry(log, "-", "", stageObj);
