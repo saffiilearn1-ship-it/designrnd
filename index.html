@@ -2545,12 +2545,14 @@
         try {
           data = JSON.parse(rawText);
         } catch (_) {
-          // Non-JSON response
+          return { ok: true };
         }
         if (data && (data.ok === false || data.success === false || data.status === "error")) {
           throw new Error(data.message || data.error || "Server rejected update.");
         }
+        return data || { ok: true };
       }
+      return { ok: true };
     }
 
     async function saveExpandedSurveyStage(rowIndex, ticketId, stageKey, btn) {
@@ -2624,12 +2626,22 @@
         const logDetail = `[${stgLabel}] ${stgLabel}: ${oldValDisp} → ${newValDisp} | PIC: ${autoPic}${updatedNote ? ` | Ket: ${updatedNote}` : ""}`;
         applyOptimisticHistoryEntry("Survey", ticketId, ticket.customer, autoSyncedStatus, "UPDATE", logDetail, autoPic);
 
+        let handoverSyncOk = true;
         if (willAutoCreateHandover && !(appData.handover || []).some(h => (h.customer || "").trim().toLowerCase() === (ticket.customer || "").trim().toLowerCase())) {
-          const nextNum = (appData.handover || []).length + 1;
-          const newHandoverId = `HND-${String(nextNum).padStart(4, "0")}`;
+          const existingHnd = appData.handover || [];
+          let maxSeq = existingHnd.length;
+          existingHnd.forEach(h => {
+            const m = String(h.ticketId || h.workOrderId || "").match(/HND-0*(\d+)/i);
+            if (m) {
+              const num = parseInt(m[1], 10);
+              if (num > maxSeq) maxSeq = num;
+            }
+          });
+          const nextSeq = maxSeq + 1;
+          const newHandoverId = `HND-${String(nextSeq).padStart(4, "0")}`;
           const newHandoverObj = {
-            rowIndex: 999000 + nextNum,
-            no: nextNum,
+            rowIndex: 999000 + nextSeq,
+            no: nextSeq,
             status: "Pending",
             customer: ticket.customer,
             ticketId: newHandoverId,
@@ -2642,32 +2654,45 @@
           };
           appData.handover.push(newHandoverObj);
 
-          // Also sync new Handover record to backend/spreadsheet so it is not lost on fetchAllData()
-          sendWorkOrderPayload({
-            ticketType: "Handover",
-            action: "add",
-            token: authToken,
-            customer: ticket.customer,
-            ticketId: newHandoverId,
-            sourceSurveyTicketId: ticket.ticketId || ticketId,
-            status: "Pending",
-            staging: "Negotiation",
-            materialEquip: "",
-            forwardWo: "",
-            pic: autoPic,
-            description: `Auto-created from completed Survey ${ticket.ticketId || ticketId}`,
-            stageDetails: { staging: { pic: autoPic, note: "" } }
-          }).catch(() => {});
+          try {
+            const hndResp = await sendWorkOrderPayload({
+              ticketType: "Handover",
+              action: "add",
+              token: authToken,
+              customer: ticket.customer,
+              ticketId: newHandoverId,
+              sourceSurveyTicketId: ticket.ticketId || ticketId,
+              status: "Pending",
+              staging: "Negotiation",
+              materialEquip: "",
+              forwardWo: "",
+              pic: autoPic,
+              description: `Auto-created from completed Survey ${ticket.ticketId || ticketId}`,
+              stageDetails: { staging: { pic: autoPic, note: "" } }
+            });
+            if (hndResp && hndResp.ticketId) {
+              newHandoverObj.ticketId = hndResp.ticketId;
+              newHandoverObj.workOrderId = hndResp.ticketId;
+            }
+            if (hndResp && hndResp.rowIndex) {
+              newHandoverObj.rowIndex = hndResp.rowIndex;
+            }
+          } catch (hndErr) {
+            handoverSyncOk = false;
+            console.warn("Handover auto-sync warning:", hndErr);
+          }
         }
 
-        btn.innerText = willAutoCreateHandover ? "✓ Saved & Handover Created" : "✓ Saved";
+        btn.innerText = willAutoCreateHandover
+          ? (handoverSyncOk ? "✓ Saved & Handover Created" : "✓ Survey Saved (Check Handover)")
+          : "✓ Saved";
         btn.classList.remove("from-orange-500", "to-amber-500");
         btn.classList.add("bg-emerald-400");
 
         setTimeout(() => {
           expandedRows[ticketId] = false;
           refreshAllViewsOptimistic();
-          setTimeout(() => fetchAllData(), 1400);
+          setTimeout(() => fetchAllData(), 1800);
         }, 900);
       } catch (err) {
         alert("Failed to save changes.");
